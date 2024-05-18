@@ -1,10 +1,21 @@
-from typing import NamedTuple
 import torch
 
-class QTensor(NamedTuple):
-  scale: float
-  tensor: torch.Tensor
-  zero_point: int = 0
+class QTensor():
+  def __init__(self, tensor: torch.Tensor, scale: float, zero_point: int = 0):
+    super().__init__()
+
+    self.tensor = tensor
+    self.scale = scale
+    self.zero_point = zero_point
+
+  @property
+  def tensor(self):
+    return self._tensor
+
+  @tensor.setter
+  def tensor(self, new_data: torch.Tensor):
+    assert(new_data.dtype in (torch.uint8, torch.int8))
+    self._tensor = new_data
 
 def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
   # Calc Scale and zero point of next

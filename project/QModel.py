@@ -45,7 +45,7 @@ def quantizeLayer(x, layer, stat, scale_x, zp_x):
   layer.weight.data = W
   layer.bias.data = B
 
-  return x, scale_next, zero_point_next
+  return x.round().byte(), scale_next, zero_point_next
 
 # Get Min and max of x tensor, and stores it
 def updateStats(x, stats, key):
