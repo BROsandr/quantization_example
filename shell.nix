@@ -3,6 +3,7 @@ let
   pkgs = import sources.nixpkgs { config = {}; overlays = []; };
   pyEnv = pkgs.python3.withPackages (ps: with ps; [
     torch
+    torchvision
   ]);
   shell = pkgs.mkShellNoCC {
     inputsFrom = [ ];
