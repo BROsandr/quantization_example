@@ -4,6 +4,9 @@ from QTensor import quantize_tensor
 from QTensor import calcScaleZeroPoint
 from QTensor import dequantize_tensor
 from QTensor import QTensor
+import torch.nn as nn
+from Model import Model
+import torch
 
 def quantizeLayer(x, layer, stat, scale_x, zp_x):
   # for both conv and linear layers
@@ -104,39 +107,48 @@ def gatherStats(model, test_loader):
       final_stats[key] = { "max" : value["max"] / value["total"], "min" : value["min"] / value["total"] }
     return final_stats
 
-def quantForward(model, x, stats):
+class QModel(nn.Module):
+  def __init__(self, model: Model, stats):
+    super().__init__()
 
-  # Quantise before inputting into incoming layers
-  x = quantize_tensor(x, min_val=stats['conv1']['min'], max_val=stats['conv1']['max'])
+    self.model = model
+    self.stats = stats
 
-  x, scale_next, zero_point_next = quantizeLayer(x.tensor, model.conv1, stats['conv2'], x.scale, x.zero_point)
+  def forward(self, x: torch.Tensor):
+    stats = self.stats
+    model = self.model
 
-  x = F.max_pool2d(x, 2, 2)
+    # Quantise before inputting into incoming layers
+    x = quantize_tensor(x, min_val=stats['conv1']['min'], max_val=stats['conv1']['max'])
 
-  x, scale_next, zero_point_next = quantizeLayer(x, model.conv2, stats['fc1'], scale_next, zero_point_next)
+    x, scale_next, zero_point_next = quantizeLayer(x.tensor, model.conv1, stats['conv2'], x.scale, x.zero_point)
 
-  x = F.max_pool2d(x, 2, 2)
+    x = F.max_pool2d(x, 2, 2)
 
-  x = x.view(-1, 4*4*50)
+    x, scale_next, zero_point_next = quantizeLayer(x, model.conv2, stats['fc1'], scale_next, zero_point_next)
 
-  x, scale_next, zero_point_next = quantizeLayer(x, model.fc1, stats['fc2'], scale_next, zero_point_next)
+    x = F.max_pool2d(x, 2, 2)
 
-  # Back to dequant for final layer
-  x = dequantize_tensor(QTensor(tensor=x, scale=scale_next, zero_point=zero_point_next))
+    x = x.view(-1, 4*4*50)
 
-  x = model.fc2(x)
+    x, scale_next, zero_point_next = quantizeLayer(x, model.fc1, stats['fc2'], scale_next, zero_point_next)
 
-  return F.log_softmax(x, dim=1)
+    # Back to dequant for final layer
+    x = dequantize_tensor(QTensor(tensor=x, scale=scale_next, zero_point=zero_point_next))
+
+    x = model.fc2(x)
+
+    return F.log_softmax(x, dim=1)
 
 if __name__ == '__main__':
   from Model import Model
   import copy
   import torch
   from torchvision import datasets, transforms
-  from utils import testQuant
+  from utils import test
+  from functools import partial
 
   model = Model.create()
-  q_model = copy.deepcopy(model)
 
   kwargs = {'num_workers': 1, 'pin_memory': True}
   test_loader = torch.utils.data.DataLoader(
@@ -146,9 +158,17 @@ if __name__ == '__main__':
                    ])),
     batch_size=64, shuffle=True, **kwargs)
 
-  testQuant(q_model, test_loader, quant=False)
+  print('Model:')
+  test(model, test_loader)
 
+  q_model = copy.deepcopy(model)
   stats = gatherStats(q_model, test_loader)
+
+  q_model = QModel(model=q_model, stats=stats)
+
+
   print(stats)
 
-  testQuant(q_model, test_loader, quant=True, stats=stats)
+  print('QModel:')
+
+  test(q_model, test_loader)
