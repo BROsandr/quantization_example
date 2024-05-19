@@ -8,8 +8,11 @@ import torch.nn as nn
 from Model import Model
 import torch
 
-def quantizeLayer(x, layer, stat, scale_x, zp_x):
+def quantizeLayer(q_x: QTensor, layer, stat)->QTensor:
   # for both conv and linear layers
+
+  scale_x, zp_x = q_x.scale, q_x.zero_point
+  x: torch.Tensor = q_x.tensor
 
   # cache old values
   W = layer.weight.data
@@ -45,7 +48,7 @@ def quantizeLayer(x, layer, stat, scale_x, zp_x):
   layer.weight.data = W
   layer.bias.data = B
 
-  return x.round().byte(), scale_next, zero_point_next
+  return QTensor(tensor=x.round().byte(), scale=scale_next, zero_point=zero_point_next)
 
 # Get Min and max of x tensor, and stores it
 def updateStats(x, stats, key):
@@ -119,22 +122,22 @@ class QModel(nn.Module):
     model = self.model
 
     # Quantise before inputting into incoming layers
-    x = quantize_tensor(x, min_val=stats['conv1']['min'], max_val=stats['conv1']['max'])
+    q_x = quantize_tensor(x, min_val=stats['conv1']['min'], max_val=stats['conv1']['max'])
 
-    x, scale_next, zero_point_next = quantizeLayer(x.tensor, model.conv1, stats['conv2'], x.scale, x.zero_point)
+    q_x = quantizeLayer(q_x, model.conv1, stats['conv2'])
 
-    x = F.max_pool2d(x, 2, 2)
+    q_x.tensor = F.max_pool2d(q_x.tensor, 2, 2)
 
-    x, scale_next, zero_point_next = quantizeLayer(x, model.conv2, stats['fc1'], scale_next, zero_point_next)
+    q_x = quantizeLayer(q_x, model.conv2, stats['fc1'])
 
-    x = F.max_pool2d(x, 2, 2)
+    q_x.tensor = F.max_pool2d(q_x.tensor, 2, 2)
 
-    x = x.view(-1, 4*4*50)
+    q_x.tensor = q_x.tensor.view(-1, 4*4*50)
 
-    x, scale_next, zero_point_next = quantizeLayer(x, model.fc1, stats['fc2'], scale_next, zero_point_next)
+    q_x = quantizeLayer(q_x, model.fc1, stats['fc2'])
 
     # Back to dequant for final layer
-    x = dequantize_tensor(QTensor(tensor=x, scale=scale_next, zero_point=zero_point_next))
+    x = dequantize_tensor(q_x)
 
     x = model.fc2(x)
 
@@ -147,6 +150,7 @@ if __name__ == '__main__':
   from torchvision import datasets, transforms
   from utils import test
   from functools import partial
+  import torch.utils.data
 
   model = Model.create()
 
