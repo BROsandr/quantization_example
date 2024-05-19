@@ -1,5 +1,16 @@
 import torch
 
+_HANDLED_FUNCTIONS = {}
+
+import functools
+def implements(torch_function):
+  """Register a torch function override for QTensor"""
+  def decorator(func):
+      functools.update_wrapper(func, torch_function)
+      _HANDLED_FUNCTIONS[torch_function] = func
+      return func
+  return decorator
+
 class QTensor():
   def __init__(self, tensor: torch.Tensor, scale: float, zero_point: int = 0):
     super().__init__()
@@ -16,6 +27,18 @@ class QTensor():
   def tensor(self, new_data: torch.Tensor):
     assert(new_data.dtype in (torch.uint8, torch.int8))
     self._tensor = new_data
+
+  @classmethod
+  def __torch_function__(cls, func, types, args=(), kwargs=None):
+    if kwargs is None:
+        kwargs = {}
+    if (func not in _HANDLED_FUNCTIONS) or (not all(issubclass(t, QTensor) for t in types)):
+      return NotImplemented
+    return _HANDLED_FUNCTIONS[func](*args, **kwargs)
+
+@implements(torch.conv2d)
+def conv2d(lhs: QTensor, rhs: QTensor)->QTensor:
+  ...
 
 def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
   # Calc Scale and zero point of next
