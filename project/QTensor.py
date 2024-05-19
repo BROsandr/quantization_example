@@ -36,10 +36,6 @@ class QTensor():
       return NotImplemented
     return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
-@implements(torch.conv2d)
-def conv2d(lhs: QTensor, rhs: QTensor)->QTensor:
-  ...
-
 def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
   # Calc Scale and zero point of next
   qmin = 0.
