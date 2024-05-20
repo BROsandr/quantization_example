@@ -12,16 +12,22 @@ from typing import Callable
 
 class TestMyConv2d(unittest.TestCase):
   @staticmethod
-  def my_conv2d(inp, w, padding = [0, 0], stride = [1, 1], dilation = [1, 1]):
+  def my_conv2d(input, weight, stride = 1, padding = 0):
     # see implementation in https://pytorch.org/docs/stable/generated/torch.nn.Unfold.html
 
     from math import floor
-    inp_unf = torch.nn.functional.unfold(inp, w.shape[-2:])
-    out_unf = inp_unf.transpose(1, 2).matmul(w.view(w.size(0), -1).t()).transpose(1, 2)
+
+    if isinstance(stride, int): stride = [stride, stride]
+    if isinstance(padding, int): padding = [padding, padding]
+    if isinstance(padding, int): padding = [padding, padding]
+    dilation = [1, 1]
+
+    inp_unf = torch.nn.functional.unfold(input, weight.shape[-2:])
+    out_unf = inp_unf.transpose(1, 2).matmul(weight.view(weight.size(0), -1).t()).transpose(1, 2)
 
     # see h_out, w_out formulas in https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html#torch.nn.Conv2d
-    h_out = floor((inp.shape[-2] + 2 * padding[0] - dilation[0] * (w.shape[-2] - 1) - 1) / stride[0] + 1)
-    w_out = floor((inp.shape[-1] + 2 * padding[1] - dilation[1] * (w.shape[-1] - 1) - 1) / stride[1] + 1)
+    h_out = floor((input.shape[-2] + 2 * padding[0] - dilation[0] * (weight.shape[-2] - 1) - 1) / stride[0] + 1)
+    w_out = floor((input.shape[-1] + 2 * padding[1] - dilation[1] * (weight.shape[-1] - 1) - 1) / stride[1] + 1)
     out = torch.nn.functional.fold(out_unf, (h_out, w_out), (1, 1))
     return out
 
