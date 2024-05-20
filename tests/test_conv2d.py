@@ -10,6 +10,68 @@ import os
 from broquant.QTensor import dequantize_tensor, quantize_tensor
 from typing import Callable
 
+class TestMyConv2d(unittest.TestCase):
+  @staticmethod
+  def my_conv2d(inp, w, padding = [0, 0], stride = [1, 1], dilation = [1, 1]):
+    # see implementation in https://pytorch.org/docs/stable/generated/torch.nn.Unfold.html
+
+    from math import floor
+    inp_unf = torch.nn.functional.unfold(inp, w.shape[-2:])
+    out_unf = inp_unf.transpose(1, 2).matmul(w.view(w.size(0), -1).t()).transpose(1, 2)
+
+    # see h_out, w_out formulas in https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html#torch.nn.Conv2d
+    h_out = floor((inp.shape[-2] + 2 * padding[0] - dilation[0] * (w.shape[-2] - 1) - 1) / stride[0] + 1)
+    w_out = floor((inp.shape[-1] + 2 * padding[1] - dilation[1] * (w.shape[-1] - 1) - 1) / stride[1] + 1)
+    out = torch.nn.functional.fold(out_unf, (h_out, w_out), (1, 1))
+    return out
+
+  def test_weight_only(self):
+    x = torch.tensor(
+        [[[[1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]],
+        [[1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]]],
+        [[[1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]],
+        [[1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]]]],
+        dtype=torch.float32
+    )
+    weight = torch.tensor(
+        [[[[0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+        [0, -1, 0]],
+        [[0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+        [0, -1, 0]]],
+        [[[0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+        [0, -1, 0]],
+        [[0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+        [0, -1, 0]]]],
+        dtype=torch.float32
+    )
+
+    expected = F.conv2d(x, weight=weight)
+
+    actual = self.my_conv2d(x, weight)
+
+    self.assertTrue(torch.all(torch.eq(expected, actual)))
+    # bias = torch.tensor([5., 4.])
+
 class TestConst(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
