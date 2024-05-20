@@ -8,7 +8,7 @@ import torch.nn as nn
 import random
 import os
 from broquant.QTensor import dequantize_tensor, quantize_tensor
-from typing import Callable
+from typing import Sequence
 
 import logging
 logger = logging
@@ -16,7 +16,7 @@ logger.basicConfig(level=logging.DEBUG)
 
 class TestMyConv2d(unittest.TestCase):
   @staticmethod
-  def my_conv2d(input, weight, bias = None, stride = 1, padding = 0):
+  def my_conv2d(input, weight, bias = None, stride = 1, padding: int | Sequence[int] = 0):
     # see implementation in https://pytorch.org/docs/stable/generated/torch.nn.Unfold.html
 
     from math import floor
@@ -103,7 +103,11 @@ class TestMyConv2d(unittest.TestCase):
     actual = self.my_conv2d(self.x, self.weight, bias=self.bias, padding=padding)
     self.assertTrue(torch.all(torch.eq(expected, actual)))
 
-  # def test_unequal_padding(self):
+  def test_unequal_padding(self):
+    padding = [1, 2]
+    expected = F.conv2d(self.x, weight=self.weight, bias=self.bias, padding=padding)
+    actual = self.my_conv2d(self.x, self.weight, bias=self.bias, padding=padding)
+    self.assertTrue(torch.all(torch.eq(expected, actual)))
 
 class TestConst(unittest.TestCase):
   def __init__(self, *args, **kwargs):
