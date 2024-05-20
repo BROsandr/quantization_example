@@ -10,9 +10,13 @@ import os
 from broquant.QTensor import dequantize_tensor, quantize_tensor
 from typing import Callable
 
+import logging
+logger = logging
+logger.basicConfig(level=logging.DEBUG)
+
 class TestMyConv2d(unittest.TestCase):
   @staticmethod
-  def my_conv2d(input, weight, stride = 1, padding = 0):
+  def my_conv2d(input, weight, bias = None, stride = 1, padding = 0):
     # see implementation in https://pytorch.org/docs/stable/generated/torch.nn.Unfold.html
 
     from math import floor
@@ -29,6 +33,11 @@ class TestMyConv2d(unittest.TestCase):
     h_out = floor((input.shape[-2] + 2 * padding[0] - dilation[0] * (weight.shape[-2] - 1) - 1) / stride[0] + 1)
     w_out = floor((input.shape[-1] + 2 * padding[1] - dilation[1] * (weight.shape[-1] - 1) - 1) / stride[1] + 1)
     out = torch.nn.functional.fold(out_unf, (h_out, w_out), (1, 1))
+    if bias is not None:
+      bias_tensor = torch.ones(out.shape)
+      for channel in range(bias_tensor.shape[-3]):
+        bias_tensor[..., channel, :, :] *= bias[channel]
+      out += bias_tensor
     return out
 
   def test_weight_only(self):
@@ -76,7 +85,53 @@ class TestMyConv2d(unittest.TestCase):
     actual = self.my_conv2d(x, weight)
 
     self.assertTrue(torch.all(torch.eq(expected, actual)))
-    # bias = torch.tensor([5., 4.])
+
+  def test_bias(self):
+    x = torch.tensor(
+        [[[[1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]],
+        [[1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]]],
+        [[[1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]],
+        [[1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]]]],
+        dtype=torch.float32
+    )
+    weight = torch.tensor(
+        [[[[0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+        [0, -1, 0]],
+        [[0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+        [0, -1, 0]]],
+        [[[0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+        [0, -1, 0]],
+        [[0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+        [0, -1, 0]]]],
+        dtype=torch.float32
+    )
+
+    bias = torch.tensor([5., 4.])
+    expected = F.conv2d(x, weight=weight, bias=bias)
+
+    actual = self.my_conv2d(x, weight, bias=bias)
+
+    self.assertTrue(torch.all(torch.eq(expected, actual)))
 
 class TestConst(unittest.TestCase):
   def __init__(self, *args, **kwargs):
