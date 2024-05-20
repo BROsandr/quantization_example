@@ -50,7 +50,8 @@ class TestRandom(unittest.TestCase):
     self.assertTrue(torch.allclose(input=actual, other=expected, rtol=0.1, atol=0.1))
 
   def test_run(self):
-    for _ in range(self.ITER_NUM): self.run_iteration()
+    for i in range(self.ITER_NUM):
+      with self.subTest(i=i): self.run_iteration()
 
 if __name__ == '__main__':
   SEED = os.environ.get('TEST_SEED', TestRandom.SEED)
