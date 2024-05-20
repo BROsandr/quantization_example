@@ -16,7 +16,7 @@ logger.basicConfig(level=logging.DEBUG)
 
 class TestMyConv2d(unittest.TestCase):
   @staticmethod
-  def my_conv2d(input, weight, bias = None, stride = 1, padding: int | Sequence[int] = 0):
+  def my_conv2d(input, weight, bias = None, stride: int | Sequence[int] = 1, padding: int | Sequence[int] = 0):
     # see implementation in https://pytorch.org/docs/stable/generated/torch.nn.Unfold.html
 
     from math import floor
@@ -26,7 +26,7 @@ class TestMyConv2d(unittest.TestCase):
     if isinstance(padding, int): padding = [padding, padding]
     dilation = [1, 1]
 
-    inp_unf = torch.nn.functional.unfold(input=input, kernel_size=weight.shape[-2:], padding=padding)
+    inp_unf = torch.nn.functional.unfold(input=input, kernel_size=weight.shape[-2:], padding=padding, stride=stride)
     out_unf = inp_unf.transpose(1, 2).matmul(weight.view(weight.size(0), -1).t()).transpose(1, 2)
 
     # see h_out, w_out formulas in https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html#torch.nn.Conv2d
@@ -109,6 +109,12 @@ class TestMyConv2d(unittest.TestCase):
     actual = self.my_conv2d(self.x, self.weight, bias=self.bias, padding=padding)
     self.assertTrue(torch.all(torch.eq(expected, actual)))
 
+  def test_equal_stride(self):
+    stride = 2
+    padding = 1
+    expected = F.conv2d(self.x, weight=self.weight, bias=self.bias, padding=padding, stride=stride)
+    actual = self.my_conv2d(self.x, self.weight, bias=self.bias, padding=padding, stride=stride)
+    self.assertTrue(torch.all(torch.eq(expected, actual)))
 class TestConst(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
