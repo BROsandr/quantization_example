@@ -5,7 +5,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from pathlib import Path
-from utils import test, train
+from broquant.utils import test, train
+import torch.utils.data
+from broquant.const import MNIST_DATASET_PATH, MNIST_MODEL_PATH
 
 
 class Model(nn.Module):
@@ -35,7 +37,7 @@ class Model(nn.Module):
         return F.log_softmax(x, dim=1)
 
     @classmethod
-    def create(cls, load_model=True, model_path=Path('./data/mnist_cnn.pt'), save_model=True):
+    def create(cls, load_model=True, model_path=MNIST_MODEL_PATH, dataset_path=MNIST_DATASET_PATH, save_model=True):
 
         batch_size = 64
         test_batch_size = 64
@@ -54,10 +56,9 @@ class Model(nn.Module):
         model = cls().to(device)
 
         if not load_model:
-
           kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
           train_loader = torch.utils.data.DataLoader(
-              datasets.MNIST('../data', train=True, download=True,
+              datasets.MNIST(str(dataset_path), train=True, download=True,
                             transform=transforms.Compose([
                                 transforms.ToTensor(),
                                 transforms.Normalize((0.1307,), (0.3081,))
@@ -65,7 +66,7 @@ class Model(nn.Module):
               batch_size=batch_size, shuffle=True, **kwargs)
 
           test_loader = torch.utils.data.DataLoader(
-              datasets.MNIST('../data', train=False, transform=transforms.Compose([
+              datasets.MNIST(str(dataset_path), train=False, transform=transforms.Compose([
                                 transforms.ToTensor(),
                                 transforms.Normalize((0.1307,), (0.3081,))
                             ])),
@@ -77,7 +78,7 @@ class Model(nn.Module):
           args["log_interval"] = log_interval
           for epoch in range(1, epochs + 1):
               train(args, model, device, train_loader, optimizer, epoch)
-              test(args, model, device, test_loader)
+              test(model=model, device=device, test_loader=test_loader)
 
           if (save_model):
               torch.save(model.state_dict(), model_path)

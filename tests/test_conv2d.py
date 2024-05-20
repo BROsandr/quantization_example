@@ -1,13 +1,13 @@
 import unittest
 import sys
 if __name__ == '__main__': sys.path.append('.')
-from project.q_conv2d import q_conv2d
+from broquant.q_conv2d import q_conv2d
 import torch
 from torch.nn import functional as F
 import torch.nn as nn
 import random
 import os
-from project.QTensor import dequantize_tensor, quantize_tensor
+from broquant.QTensor import dequantize_tensor, quantize_tensor
 from typing import Callable
 
 class TestConst(unittest.TestCase):

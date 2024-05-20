@@ -18,7 +18,7 @@ def train(args, model, device, train_loader, optimizer, epoch)->None:
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.item()))
 
-def test(model: nn.Module, test_loader, device='cpu')->None:
+def test(model: nn.Module, test_loader, device: torch.device | str ='cpu')->tuple[float, float]:
     model.eval()
     test_loss = 0
     correct = 0
@@ -32,6 +32,10 @@ def test(model: nn.Module, test_loader, device='cpu')->None:
 
     test_loss /= len(test_loader.dataset)
 
+    accuracy = 100. * correct / len(test_loader.dataset)
+
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
+        accuracy))
+
+    return (test_loss, accuracy)

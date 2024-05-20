@@ -1,11 +1,11 @@
 import torch.nn.functional as F
 
-from QTensor import quantize_tensor
-from QTensor import calcScaleZeroPoint
-from QTensor import dequantize_tensor
-from QTensor import QTensor
+from broquant.QTensor import quantize_tensor
+from broquant.QTensor import calcScaleZeroPoint
+from broquant.QTensor import dequantize_tensor
+from broquant.QTensor import QTensor
 import torch.nn as nn
-from Model import Model
+from broquant.Model import Model
 import torch
 
 def quantizeLayer(q_x: QTensor, layer, stat)->QTensor:
@@ -142,37 +142,3 @@ class QModel(nn.Module):
     x = model.fc2(x)
 
     return F.log_softmax(x, dim=1)
-
-if __name__ == '__main__':
-  from Model import Model
-  import copy
-  import torch
-  from torchvision import datasets, transforms
-  from utils import test
-  from functools import partial
-  import torch.utils.data
-
-  model = Model.create()
-
-  kwargs = {'num_workers': 1, 'pin_memory': True}
-  test_loader = torch.utils.data.DataLoader(
-    datasets.MNIST('../data', train=False, transform=transforms.Compose([
-                       transforms.ToTensor(),
-                       transforms.Normalize((0.1307,), (0.3081,))
-                   ])),
-    batch_size=64, shuffle=True, **kwargs)
-
-  print('Model:')
-  test(model, test_loader)
-
-  q_model = copy.deepcopy(model)
-  stats = gatherStats(q_model, test_loader)
-
-  q_model = QModel(model=q_model, stats=stats)
-
-
-  print(stats)
-
-  print('QModel:')
-
-  test(q_model, test_loader)
