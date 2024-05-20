@@ -32,11 +32,7 @@ class TestMyConv2d(unittest.TestCase):
     h_out = floor((input.shape[-2] + 2 * padding[0] - dilation[0] * (weight.shape[-2] - 1) - 1) / stride[0] + 1)
     w_out = floor((input.shape[-1] + 2 * padding[1] - dilation[1] * (weight.shape[-1] - 1) - 1) / stride[1] + 1)
     out = torch.nn.functional.fold(input=out_unf, output_size=(h_out, w_out), kernel_size=(1, 1))
-    if bias is not None:
-      bias_tensor = torch.ones(out.shape)
-      for channel in range(bias_tensor.shape[-3]):
-        bias_tensor[..., channel, :, :] *= bias[channel]
-      out += bias_tensor
+    if bias is not None: out += bias[..., None, None]
     return out
 
   def setUp(self):
