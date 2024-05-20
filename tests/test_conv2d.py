@@ -23,7 +23,6 @@ class TestMyConv2d(unittest.TestCase):
 
     if isinstance(stride, int): stride = [stride, stride]
     if isinstance(padding, int): padding = [padding, padding]
-    if isinstance(padding, int): padding = [padding, padding]
     dilation = [1, 1]
 
     inp_unf = torch.nn.functional.unfold(input=input, kernel_size=weight.shape[-2:], padding=padding, stride=stride)
@@ -115,6 +114,14 @@ class TestMyConv2d(unittest.TestCase):
     expected = F.conv2d(self.x, weight=self.weight, bias=self.bias, padding=padding, stride=stride)
     actual = self.my_conv2d(self.x, self.weight, bias=self.bias, padding=padding, stride=stride)
     self.assertTrue(torch.all(torch.eq(expected, actual)))
+
+  def test_unequal_stride(self):
+    stride = [2, 3]
+    padding = 1
+    expected = F.conv2d(self.x, weight=self.weight, bias=self.bias, padding=padding, stride=stride)
+    actual = self.my_conv2d(self.x, self.weight, bias=self.bias, padding=padding, stride=stride)
+    self.assertTrue(torch.all(torch.eq(expected, actual)))
+
 class TestConst(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
