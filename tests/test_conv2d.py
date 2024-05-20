@@ -26,13 +26,13 @@ class TestMyConv2d(unittest.TestCase):
     if isinstance(padding, int): padding = [padding, padding]
     dilation = [1, 1]
 
-    inp_unf = torch.nn.functional.unfold(input, weight.shape[-2:])
+    inp_unf = torch.nn.functional.unfold(input=input, kernel_size=weight.shape[-2:], padding=padding)
     out_unf = inp_unf.transpose(1, 2).matmul(weight.view(weight.size(0), -1).t()).transpose(1, 2)
 
     # see h_out, w_out formulas in https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html#torch.nn.Conv2d
     h_out = floor((input.shape[-2] + 2 * padding[0] - dilation[0] * (weight.shape[-2] - 1) - 1) / stride[0] + 1)
     w_out = floor((input.shape[-1] + 2 * padding[1] - dilation[1] * (weight.shape[-1] - 1) - 1) / stride[1] + 1)
-    out = torch.nn.functional.fold(out_unf, (h_out, w_out), (1, 1))
+    out = torch.nn.functional.fold(input=out_unf, output_size=(h_out, w_out), kernel_size=(1, 1))
     if bias is not None:
       bias_tensor = torch.ones(out.shape)
       for channel in range(bias_tensor.shape[-3]):
@@ -96,6 +96,14 @@ class TestMyConv2d(unittest.TestCase):
     actual = self.my_conv2d(self.x, self.weight, bias=self.bias)
 
     self.assertTrue(torch.all(torch.eq(expected, actual)))
+
+  def test_equal_padding(self):
+    padding = 1
+    expected = F.conv2d(self.x, weight=self.weight, bias=self.bias, padding=padding)
+    actual = self.my_conv2d(self.x, self.weight, bias=self.bias, padding=padding)
+    self.assertTrue(torch.all(torch.eq(expected, actual)))
+
+  # def test_unequal_padding(self):
 
 class TestConst(unittest.TestCase):
   def __init__(self, *args, **kwargs):
