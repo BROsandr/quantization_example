@@ -40,8 +40,8 @@ class TestMyConv2d(unittest.TestCase):
       out += bias_tensor
     return out
 
-  def test_weight_only(self):
-    x = torch.tensor(
+  def setUp(self):
+    self.x = torch.tensor(
         [[[[1, 2, 3, 4],
         [5, 6, 7, 8],
         [9, 10, 11, 12],
@@ -60,7 +60,7 @@ class TestMyConv2d(unittest.TestCase):
         [13, 14, 15, 16]]]],
         dtype=torch.float32
     )
-    weight = torch.tensor(
+    self.weight = torch.tensor(
         [[[[0, -1, 0],
         [-1, 5, -1],
         [0, -1, 0],
@@ -80,56 +80,20 @@ class TestMyConv2d(unittest.TestCase):
         dtype=torch.float32
     )
 
-    expected = F.conv2d(x, weight=weight)
+    self.bias = torch.tensor([5., 4.])
 
-    actual = self.my_conv2d(x, weight)
+  def test_weight_only(self):
+
+    expected = F.conv2d(self.x, weight=self.weight)
+
+    actual = self.my_conv2d(self.x, self.weight)
 
     self.assertTrue(torch.all(torch.eq(expected, actual)))
 
   def test_bias(self):
-    x = torch.tensor(
-        [[[[1, 2, 3, 4],
-        [5, 6, 7, 8],
-        [9, 10, 11, 12],
-        [13, 14, 15, 16]],
-        [[1, 2, 3, 4],
-        [5, 6, 7, 8],
-        [9, 10, 11, 12],
-        [13, 14, 15, 16]]],
-        [[[1, 2, 3, 4],
-        [5, 6, 7, 8],
-        [9, 10, 11, 12],
-        [13, 14, 15, 16]],
-        [[1, 2, 3, 4],
-        [5, 6, 7, 8],
-        [9, 10, 11, 12],
-        [13, 14, 15, 16]]]],
-        dtype=torch.float32
-    )
-    weight = torch.tensor(
-        [[[[0, -1, 0],
-        [-1, 5, -1],
-        [0, -1, 0],
-        [0, -1, 0]],
-        [[0, -1, 0],
-        [-1, 5, -1],
-        [0, -1, 0],
-        [0, -1, 0]]],
-        [[[0, -1, 0],
-        [-1, 5, -1],
-        [0, -1, 0],
-        [0, -1, 0]],
-        [[0, -1, 0],
-        [-1, 5, -1],
-        [0, -1, 0],
-        [0, -1, 0]]]],
-        dtype=torch.float32
-    )
+    expected = F.conv2d(self.x, weight=self.weight, bias=self.bias)
 
-    bias = torch.tensor([5., 4.])
-    expected = F.conv2d(x, weight=weight, bias=bias)
-
-    actual = self.my_conv2d(x, weight, bias=bias)
+    actual = self.my_conv2d(self.x, self.weight, bias=self.bias)
 
     self.assertTrue(torch.all(torch.eq(expected, actual)))
 
