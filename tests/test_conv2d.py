@@ -26,6 +26,20 @@ class TestMyConv2d(unittest.TestCase):
     dilation = [1, 1]
 
     inp_unf = torch.nn.functional.unfold(input=input, kernel_size=weight.shape[-2:], padding=padding, stride=stride)
+
+    tmp_inp = inp_unf.transpose(1, 2)
+    tmp_weight = weight.view(weight.size(0), -1).t()
+
+    def mymatmul(input: torch.Tensor, other: torch.Tensor):
+      assert_shape = lambda tensor: 2 <= len(tensor.shape) <= 4
+      assert(assert_shape(input) and assert_shape(other))
+
+      get_normalized_shape = lambda tensor: (((1,) * 4) + tuple(tensor.shape))[-4:]
+
+      input_norm_shape = get_normalized_shape(input)
+      other_norm_shape = get_normalized_shape(other)
+
+
     out_unf = inp_unf.transpose(1, 2).matmul(weight.view(weight.size(0), -1).t()).transpose(1, 2)
 
     # see h_out, w_out formulas in https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html#torch.nn.Conv2d
