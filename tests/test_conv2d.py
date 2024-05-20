@@ -1,22 +1,42 @@
 import unittest
+import sys
+if __name__ == '__main__': sys.path.append('.')
 from project.q_conv2d import q_conv2d
 import torch
 from torch.nn import functional as F
 import torch.nn as nn
 import random
-import sys
 import os
 from project.QTensor import dequantize_tensor, quantize_tensor
 from typing import Callable
 
-# class TestBasic(unittest.TestCase):
-#   def __init__(self, *args, **kwargs):
-#     super().__init__(*args, **kwargs)
-#     # self.weight = torch.tensor([1
+class TestConst(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
 
-#   def test_const(self):
-#     ...
+  def test_single_stride_no_bias(self):
+    x = torch.tensor(
+      [[[1, 2],
+      [3, 4]]],
+      dtype=torch.float32
+    )
+    weight = torch.tensor(
+      [[[[1, 1],
+      [2, 2]]]],
+      dtype=torch.float32
+    )
+    bias = torch.tensor([0.])
 
+    y = F.conv2d(x, weight=weight, bias=bias)
+    self.assertTrue(torch.all(torch.eq(y, torch.tensor([[[17.]]]))))
+
+    q_y = F.conv2d(quantize_tensor(x), weight=quantize_tensor(weight), bias=quantize_tensor(bias))
+    self.assertTrue(torch.all(torch.eq(dequantize_tensor(q_y), torch.tensor([[[17.]]]))))
+
+  def test_const(self):
+    ...
+
+@unittest.expectedFailure
 class TestRandom(unittest.TestCase):
   SEED = random.randrange(sys.maxsize)
 
