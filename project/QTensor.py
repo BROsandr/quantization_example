@@ -1,4 +1,6 @@
 import torch
+import logging
+logger = logging
 
 _HANDLED_FUNCTIONS = {}
 
@@ -41,9 +43,16 @@ def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
   qmin = 0.
   qmax = 2.**num_bits - 1.
 
-  scale = (max_val - min_val) / (qmax - qmin)
+  if min_val != max_val:
+    scale = (max_val - min_val) / (qmax - qmin)
 
-  zero_point = int(qmin - min_val / scale)
+    zero_point = int(qmin - min_val / scale)
+  else:
+    if not(qmin <= min_val <= qmax):
+      raise ValueError("A quantized value is outside range [-128; 127], when min_val == max_val")
+    logger.warning("Qunatizing a value when min_val == max_val. This is a low precision mode.")
+    scale = 1.
+    zero_point = 2 ** (num_bits - 1)
 
   return scale, zero_point
 
