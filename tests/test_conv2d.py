@@ -221,6 +221,27 @@ class TestMyConv2d(unittest.TestCase):
     cmp_res = torch.allclose(expected, actual, atol=1e-04) # it is unexpected that there is atol. Probably due to python-c differences.
     self.assertTrue(cmp_res)
 
+class TestMyMM(unittest.TestCase):
+  @staticmethod
+  def mymm(input: torch.Tensor, mat2: torch.Tensor):
+    ar,ac = input.shape
+    br,bc = mat2.shape
+    assert ac==br
+    c = torch.zeros(ar, bc)
+    for i in range(ar):
+        for j in range(bc):
+            c[i,j] = (input[i,:] * mat2[:,j]).sum() # multiply all of column j by all of row i and sum it
+    return c
+
+  def test_2x2(self):
+    a = torch.tensor([[1, 2], [3, 4]], dtype=torch.uint8, requires_grad=False)
+    b = torch.tensor([[5, 6], [7, 8]], dtype=torch.uint8, requires_grad=False)
+    with torch.no_grad():
+      expected = torch.mm(a, b)
+      actual = self.mymm(a, b)
+    cmp_res = torch.all(torch.eq(expected, actual))
+    self.assertTrue(cmp_res)
+
 class TestConst(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
