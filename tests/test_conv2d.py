@@ -14,6 +14,14 @@ import logging
 logger = logging
 logger.basicConfig(level=logging.DEBUG)
 
+_SEED = random.randrange(sys.maxsize)
+def set_default_seed():
+  global _SEED
+  seed = os.environ.get('TEST_SEED', _SEED)
+  _SEED = int(seed)
+
+set_default_seed()
+
 class Conv2dRandomizer:
   def __init__(self, SEED, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -21,6 +29,7 @@ class Conv2dRandomizer:
     random.seed(self.SEED)
     torch.manual_seed(self.SEED)
     self.MAX_RAND = 10
+    logger.debug(f'Conv2dRandomizer.SEED:{self.SEED}')
 
   def randomize(self):
     dim = random.randint(1, self.MAX_RAND)
@@ -218,10 +227,8 @@ class TestConst(unittest.TestCase):
 
 @unittest.expectedFailure
 class TestRandom(unittest.TestCase):
-  SEED = random.randrange(sys.maxsize)
-
   def setUp(self):
-    self.randomizer = Conv2dRandomizer(SEED=self.SEED)
+    self.randomizer = Conv2dRandomizer(SEED=SEED)
     self.ITER_NUM = 100
 
   def call(self, input, weight, bias):
@@ -246,7 +253,4 @@ class TestRandom(unittest.TestCase):
       with self.subTest(i=i): self.run_iteration()
 
 if __name__ == '__main__':
-  SEED = os.environ.get('TEST_SEED', TestRandom.SEED)
-  TestRandom.SEED = int(SEED)
-
   unittest.main()
