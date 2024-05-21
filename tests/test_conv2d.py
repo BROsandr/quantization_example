@@ -40,9 +40,9 @@ class Conv2dRandomizer:
     self.padding=random.randint(0, self.MAX_RAND)
     num_batches = random.randint(1,self.MAX_RAND )
     self.use_bias = bool(random.randint(0, 1))
-    self.weight = torch.nn.Parameter(torch.randn(self.out_channels, self.in_channels, self.kernel_size, self.kernel_size))
-    self.bias = torch.nn.Parameter(torch.randn(self.out_channels))
-    self.input = torch.randn(num_batches, self.in_channels, dim, dim)
+    self.weight = torch.nn.Parameter(torch.randn(self.out_channels, self.in_channels, self.kernel_size, self.kernel_size, requires_grad=False))
+    self.bias = torch.nn.Parameter(torch.randn(self.out_channels, requires_grad=False))
+    self.input = torch.randn(num_batches, self.in_channels, dim, dim, requires_grad=False)
 
 class TestMyConv2d(unittest.TestCase):
   @staticmethod
@@ -198,6 +198,22 @@ class TestMyConv2d(unittest.TestCase):
     expected = F.conv2d(self.x, weight=self.weight, bias=self.bias, padding=padding, stride=stride)
     actual = self.my_conv2d(self.x, self.weight, bias=self.bias, padding=padding, stride=stride)
     self.assertTrue(torch.all(torch.eq(expected, actual)))
+
+  def test_random(self):
+    randomizer = Conv2dRandomizer(SEED=_SEED)
+    randomizer.randomize()
+
+    input = randomizer.input
+    stride = randomizer.stride
+    padding = randomizer.padding
+    bias = randomizer.bias if randomizer.use_bias else None
+    weight = randomizer.weight
+
+    with torch.no_grad():
+      expected = F.conv2d(input, weight=weight, bias=bias, padding=padding, stride=stride)
+      actual = self.my_conv2d(input, weight=weight, bias=bias, padding=padding, stride=stride)
+    cmp_res = torch.allclose(expected, actual, atol=1e-05) # it is unexpected that there is atol
+    self.assertTrue(cmp_res)
 
 class TestConst(unittest.TestCase):
   def __init__(self, *args, **kwargs):
