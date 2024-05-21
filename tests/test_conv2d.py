@@ -14,6 +14,27 @@ import logging
 logger = logging
 logger.basicConfig(level=logging.DEBUG)
 
+class Conv2dRandomizer:
+  def __init__(self, SEED, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.SEED = SEED
+    random.seed(self.SEED)
+    torch.manual_seed(self.SEED)
+    self.MAX_RAND = 10
+
+  def randomize(self):
+    dim = random.randint(1, self.MAX_RAND)
+    self.in_channels = random.randint(1, self.MAX_RAND)
+    self.out_channels = random.randint(1, self.MAX_RAND)
+    self.kernel_size = random.randint(1, dim)
+    self.stride=random.randint(1, self.MAX_RAND)
+    self.padding=random.randint(0, self.MAX_RAND)
+    num_batches = random.randint(1,self.MAX_RAND )
+    self.use_bias = bool(random.randint(0, 1))
+    self.weight = torch.nn.Parameter(torch.randn(self.out_channels, self.in_channels, self.kernel_size, self.kernel_size))
+    self.bias = torch.nn.Parameter(torch.randn(self.out_channels))
+    self.input = torch.randn(num_batches, self.in_channels, dim, dim)
+
 class TestMyConv2d(unittest.TestCase):
   @staticmethod
   def my_conv2d(input, weight, bias = None, stride: int | Sequence[int] = 1, padding: int | Sequence[int] = 0):
@@ -199,33 +220,25 @@ class TestConst(unittest.TestCase):
 class TestRandom(unittest.TestCase):
   SEED = random.randrange(sys.maxsize)
 
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-    random.seed(self.SEED)
-    torch.manual_seed(self.SEED)
-    self.MAX_RAND = 10
+  def setUp(self):
+    self.randomizer = Conv2dRandomizer(SEED=self.SEED)
     self.ITER_NUM = 100
 
-  def randomize(self):
-    dim = random.randint(1, self.MAX_RAND)
-    self.in_channels = random.randint(1, self.MAX_RAND)
-    self.out_channels = random.randint(1, self.MAX_RAND)
-    self.kernel_size = random.randint(1, dim)
-    self.stride=random.randint(1, self.MAX_RAND)
-    self.padding=random.randint(0, self.MAX_RAND)
-    num_batches = random.randint(1,self.MAX_RAND )
-    self.use_bias = bool(random.randint(0, 1))
-    self.weight = torch.nn.Parameter(torch.randn(self.out_channels, self.in_channels, self.kernel_size, self.kernel_size))
-    self.bias = torch.nn.Parameter(torch.randn(self.out_channels))
-    self.input = torch.randn(num_batches, self.in_channels, dim, dim)
-
   def call(self, input, weight, bias):
-    return F.conv2d(input=input, weight=weight, bias=(bias if self.use_bias else None), stride=self.stride, padding=self.padding)
+    randomizer = self.randomizer
+    use_bias = randomizer.use_bias
+    stride = randomizer.stride
+    padding = randomizer.padding
+    return F.conv2d(input=input, weight=weight, bias=(bias if use_bias else None), stride=stride, padding=padding)
 
   def run_iteration(self):
-    self.randomize()
-    actual: torch.Tensor=self.call(input=self.input, weight=self.weight, bias=self.bias)
-    expected: torch.Tensor=dequantize_tensor(self.call(input=quantize_tensor(self.input), weight=quantize_tensor(self.weight), bias=quantize_tensor(self.bias)))
+    randomizer = self.randomizer
+    randomizer.randomize()
+    input = randomizer.input
+    weight = randomizer.weight
+    bias = randomizer.bias
+    actual: torch.Tensor=self.call(input=input, weight=weight, bias=bias)
+    expected: torch.Tensor=dequantize_tensor(self.call(input=quantize_tensor(input), weight=quantize_tensor(weight), bias=quantize_tensor(bias)))
     self.assertTrue(torch.allclose(input=actual, other=expected, rtol=0.1, atol=0.1))
 
   def test_run(self):
