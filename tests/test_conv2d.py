@@ -8,7 +8,7 @@ import torch.nn as nn
 import random
 import os
 from broquant.QTensor import dequantize_tensor, quantize_tensor
-from typing import Iterable, Sequence
+from typing import Iterable, Any
 
 import logging
 logger = logging
@@ -37,13 +37,13 @@ class Conv2dRandomizer:
 
 class TestMyConv2d(unittest.TestCase):
   @staticmethod
-  def my_conv2d(input, weight, bias = None, stride: int | Sequence[int] = 1, padding: int | Sequence[int] = 0):
+  def my_conv2d(input, weight, bias = None, stride: Any = 1, padding: Any = 0)->torch.Tensor:
     # see implementation in https://pytorch.org/docs/stable/generated/torch.nn.Unfold.html
 
     from math import floor
 
-    if isinstance(stride, int): stride = [stride, stride]
-    if isinstance(padding, int): padding = [padding, padding]
+    if isinstance(stride, int): stride = (stride, stride)
+    if isinstance(padding, int): padding = (padding, padding)
     dilation = [1, 1]
 
     inp_unf = torch.nn.functional.unfold(input=input, kernel_size=weight.shape[-2:], padding=padding, stride=stride)
@@ -88,7 +88,7 @@ class TestMyConv2d(unittest.TestCase):
           channel_out.append(input[inp_batch_idx, inp_chan_idx, ...].mm(other[other_batch_idx, other_chan_idx, ...]))
         batch_out.append(channel_out)
 
-      def cat_tensors(seq: Sequence)->torch.Tensor:
+      def cat_tensors(seq: tuple | list)->torch.Tensor:
         if all(isinstance(el, torch.Tensor) for el in seq):
           return torch.stack(seq)
         return cat_tensors([cat_tensors(el) for el in seq])
