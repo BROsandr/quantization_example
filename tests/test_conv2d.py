@@ -7,7 +7,7 @@ from torch.nn import functional as F
 import torch.nn as nn
 import random
 import os
-from broquant.QTensor import dequantize_tensor, quantize_tensor
+from broquant.QTensor import dequantize_tensor, quantize_tensor, QTensor
 from typing import Iterable, Any
 
 import logging
@@ -241,6 +241,51 @@ class TestMyMM(unittest.TestCase):
       actual = self.mymm(a, b)
     cmp_res = torch.all(torch.eq(expected, actual))
     self.assertTrue(cmp_res)
+
+class TestMyMMQuant(unittest.TestCase):
+  @staticmethod
+  def q_mul(input: QTensor, other: QTensor):
+
+    # see hints regarding the algorithm at https://github.com/google/gemmlowp/blob/master/doc/quantization.md
+    # Algorithm:
+    # 1. x_n = x - zp: remove the bias from a tensor. To do so we need to increase the data storage from 8 bits up to int16. We choose a signed type for easy multiplication handling. It is unimportant whether the x is signed or unsigned because the zp already had been properly modified be a caller. Thus converts the tensor to the standard fixed-point format.
+    # 2. y = x1 * x2, s = s1 * s2: multiply two fixed-point tensors. Increase data storage from int16 up to int32. Resulting bias is 0.
+    # 3. Return y. Caller then can requantize and rescaled back to 8 bits.
+
+    def check_dtype(tensor: QTensor)->None:
+      dtype = tensor.tensor.dtype
+      if not ((dtype is torch.uint8) or (dtype is torch.int8)):
+        raise NotImplemented(f"Unsupported dtype:{dtype}")
+
+    check_dtype(input)
+    check_dtype(other)
+
+    def QTensor2Tensor32(tensor: QTensor)->torch.Tensor:
+      return (input.tensor.to(torch.int16) - input.zero_point).to(torch.int32)
+
+    result_tensor = QTensor2Tensor32(input) * QTensor2Tensor32(input)
+    result_scale = input.scale * other.scale
+
+    return QTensor(tensor=result_tensor, scale=result_scale, zero_point=0)
+
+  @staticmethod
+  def q_mm(input: QTensor, mat2: QTensor)->QTensor:
+
+    # see hints regarding the algorithm at https://github.com/google/gemmlowp/blob/master/doc/quantization.md
+    # 1. In a cycle do the standard matrix x = row_a x column_b vector dot multiplication by the q_mul function. It returns an int32 vector with scale_a * scale_b
+    # 2. y = sum(x[i]). Thus we sum int32 into int32 accumulator
+    # 3. Return y. A caller can requantize if this is needed.
+    ar,ac = input.shape
+    br,bc = mat2.shape
+    assert ac==br
+    c = torch.zeros(ar, bc)
+    for i in range(ar):
+        for j in range(bc):
+            c[i,j] = (input[i,:] * mat2[:,j]).sum() # multiply all of column j by all of row i and sum it
+    return c
+
+  def test_2x2(self):
+    return NotImplemented
 
 class TestConst(unittest.TestCase):
   def __init__(self, *args, **kwargs):
