@@ -41,18 +41,31 @@ class QTensor():
 def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
   # Calc Scale and zero point of next
   qmin = 0.
-  qmax = 2.**num_bits - 1.
+  qmax = 2 ** num_bits - 1.
 
-  if min_val != max_val:
+  if min_val != max_val: # do the min-max quantization with the bias and the activation
     scale = (max_val - min_val) / (qmax - qmin)
 
     zero_point = int(qmin - min_val / scale)
-  else:
-    if not(qmin <= min_val <= qmax):
-      raise ValueError("A quantized value is outside range [-128; 127], when min_val == max_val")
+  else: # do the nearest scale quantization without the bias
+    val = min_val
+    min_zero_scaled = (-1 << (num_bits - 1))
+    max_zero_scaled = ( 1 << (num_bits - 1)) - 1
+    if not (min_zero_scaled <= val <= max_zero_scaled):
+      raise ValueError(f"A quantized value is outside range [{min_zero_scaled}; {max_zero_scaled}], when min_val == max_val")
     logger.warning("Qunatizing a value when min_val == max_val. This is a low precision mode.")
-    scale = 1.
-    zero_point = 2 ** (num_bits - 1)
+
+    def find_scale(val)->float:
+      scale = 1
+      if int(val) == val: # if the val is int then it is excactly representable. Also handles 0 case.
+        return scale # so do shortcut
+
+      while (min_zero_scaled * scale) <= val <= (max_zero_scaled * scale): # Scale down the representable range until the val would be outside
+        scale /= 2
+      return scale * 2 # Because we did one iteration past the actual
+    scale = find_scale(val)
+
+    zero_point = int(-min_zero_scaled * scale) # convert to uint range. Note that here we use multiplication not division. The divison is used in the case of min_val.
 
   return scale, zero_point
 
