@@ -316,7 +316,7 @@ class TestConst(unittest.TestCase):
 @unittest.expectedFailure
 class TestRandom(unittest.TestCase):
   def setUp(self):
-    self.randomizer = Conv2dRandomizer(SEED=SEED)
+    self.randomizer = Conv2dRandomizer(SEED=_SEED)
     self.ITER_NUM = 100
 
   def call(self, input, weight, bias):
