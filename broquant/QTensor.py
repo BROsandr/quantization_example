@@ -13,7 +13,10 @@ def implements(torch_function):
       return func
   return decorator
 
-class QTensor():
+class QTensor(torch.Tensor):
+  def __new__(cls, tensor: torch.Tensor, scale: float, zero_point: int = 0, *args, **kwargs):
+    return super().__new__(cls, tensor, *args, **kwargs)
+
   def __init__(self, tensor: torch.Tensor, scale: float, zero_point: int = 0):
     super().__init__()
 
