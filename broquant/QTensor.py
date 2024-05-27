@@ -30,16 +30,24 @@ class QTensor(torch.Tensor):
 
   @tensor.setter
   def tensor(self, new_data: torch.Tensor):
-    assert(new_data.dtype in (torch.uint8, torch.int8))
+    assert(self.dtype in (torch.uint8, torch.int8, torch.int16, torch.int32))
     self._tensor = new_data
 
-  @classmethod
-  def __torch_function__(cls, func, types, args=(), kwargs=None):
-    if kwargs is None:
-        kwargs = {}
-    if (func not in _HANDLED_FUNCTIONS) or (not all(issubclass(t, QTensor) for t in types)):
-      return NotImplemented
-    return _HANDLED_FUNCTIONS[func](*args, **kwargs)
+  def clone(self, new_tensor=None, *args, **kwargs) -> "QTensor":
+    if new_tensor is None:
+      new_tensor = super().clone(*args, **kwargs)
+    return QTensor(tensor=new_tensor, scale=self.scale, zero_point=self.zero_point)
+
+  def __getitem__(self, *args, **kwargs) -> "QTensor":
+    return self.clone(new_tensor=super().__getitem__(*args, **kwargs))
+
+  # @classmethod
+  # def __torch_function__(cls, func, types, args=(), kwargs=None):
+  #   if kwargs is None:
+  #       kwargs = {}
+  #   if (func not in _HANDLED_FUNCTIONS) or (not all(issubclass(t, QTensor) for t in types)):
+  #     return NotImplemented
+  #   return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
 def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
   # Calc Scale and zero point of next

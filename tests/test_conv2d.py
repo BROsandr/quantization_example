@@ -253,7 +253,7 @@ class TestMyMMQuant(unittest.TestCase):
     # 3. Return y. Caller then can requantize and rescaled back to 8 bits.
 
     def check_dtype(tensor: QTensor)->None:
-      dtype = tensor.tensor.dtype
+      dtype = tensor.dtype
       if not ((dtype is torch.uint8) or (dtype is torch.int8)):
         raise NotImplemented(f"Unsupported dtype:{dtype}")
 
@@ -261,9 +261,9 @@ class TestMyMMQuant(unittest.TestCase):
     check_dtype(other)
 
     def QTensor2Tensor32(tensor: QTensor)->torch.Tensor:
-      return (input.tensor.to(torch.int16) - input.zero_point).to(torch.int32)
+      return (tensor.to(torch.int16) - tensor.zero_point).to(torch.int32)
 
-    result_tensor = QTensor2Tensor32(input) * QTensor2Tensor32(input)
+    result_tensor = QTensor2Tensor32(input) * QTensor2Tensor32(other)
     result_scale = input.scale * other.scale
 
     return QTensor(tensor=result_tensor, scale=result_scale, zero_point=0)
@@ -278,14 +278,20 @@ class TestMyMMQuant(unittest.TestCase):
     ar,ac = input.shape
     br,bc = mat2.shape
     assert ac==br
-    c = torch.zeros(ar, bc)
+    c = QTensor(tensor=torch.zeros(ar, bc, dtype=torch.int32), scale=input.scale * mat2.scale, zero_point=0)
     for i in range(ar):
         for j in range(bc):
-            c[i,j] = (input[i,:] * mat2[:,j]).sum() # multiply all of column j by all of row i and sum it
+            c[i,j] = (TestMyMMQuant.q_mul(input[i,:], mat2[:,j])).sum() # multiply all of column j by all of row i and sum it
     return c
 
   def test_2x2(self):
-    return NotImplemented
+    a = torch.tensor([[1, 2], [3, 4]], dtype=torch.uint8, requires_grad=False)
+    b = torch.tensor([[5, 6], [7, 8]], dtype=torch.uint8, requires_grad=False)
+    with torch.no_grad():
+      expected = torch.mm(a, b)
+      actual = self.q_mm(quantize_tensor(a), quantize_tensor(b))
+    cmp_res = torch.allclose(expected.to(torch.float32), dequantize_tensor(actual))
+    self.assertTrue(cmp_res)
 
 class TestConst(unittest.TestCase):
   def __init__(self, *args, **kwargs):
