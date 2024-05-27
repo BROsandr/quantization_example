@@ -38,16 +38,27 @@ class QTensor(torch.Tensor):
       new_tensor = super().clone(*args, **kwargs)
     return QTensor(tensor=new_tensor, scale=self.scale, zero_point=self.zero_point)
 
-  def __getitem__(self, *args, **kwargs) -> "QTensor":
-    return self.clone(new_tensor=super().__getitem__(*args, **kwargs))
-
-  # @classmethod
-  # def __torch_function__(cls, func, types, args=(), kwargs=None):
-  #   if kwargs is None:
-  #       kwargs = {}
-  #   if (func not in _HANDLED_FUNCTIONS) or (not all(issubclass(t, QTensor) for t in types)):
-  #     return NotImplemented
-  #   return _HANDLED_FUNCTIONS[func](*args, **kwargs)
+  @classmethod
+  def __torch_function__(cls, func, types, args=(), kwargs=None):
+    if kwargs is None:
+        kwargs = {}
+    if not all(issubclass(t, QTensor) for t in types):
+      return NotImplemented
+    if func not in _HANDLED_FUNCTIONS:
+      def all_equal(iterable, key=None):
+        from itertools import groupby
+        g = groupby(iterable)
+        return next(g, True) and not next(g, False)
+      tensors = [tensor for tensor in args if isinstance(tensor, QTensor)]
+      def is_same_scale_zp(tensors):
+        return all_equal(tensors, lambda q1, q2: (q1.scale == q2.scale) and (q1.zero_point == q2.zero_point))
+      if not is_same_scale_zp(tensors):
+        return NotImplemented
+      res = super().__torch_function__(func, types, args, kwargs)
+      if isinstance(res, QTensor):
+        res = QTensor(tensor=res, scale=tensors[0].scale, zero_point=tensors[0].zero_point)
+      return res
+    return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
 def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
   # Calc Scale and zero point of next
