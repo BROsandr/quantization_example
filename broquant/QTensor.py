@@ -41,13 +41,32 @@ class QTensor(torch.Tensor):
   def __getitem__(self, *args, **kwargs) -> "QTensor":
     return self.clone(new_tensor=super().__getitem__(*args, **kwargs))
 
-  # @classmethod
-  # def __torch_function__(cls, func, types, args=(), kwargs=None):
-  #   if kwargs is None:
-  #       kwargs = {}
-  #   if (func not in _HANDLED_FUNCTIONS) or (not all(issubclass(t, QTensor) for t in types)):
-  #     return NotImplemented
-  #   return _HANDLED_FUNCTIONS[func](*args, **kwargs)
+  def mm(self, mat2: "QTensor") -> "QTensor":
+    return q_mm(self, mat2)
+
+  def __mul__(self, other: "QTensor") -> "QTensor":
+    return q_mul(self, other)
+
+  def to(self, *args, **kwargs) -> "QTensor":
+    new_obj = self.clone()
+    tempTensor=super().to(*args, **kwargs)
+    new_obj.data=tempTensor.data
+    new_obj.requires_grad=tempTensor.requires_grad
+    return new_obj
+
+  @classmethod
+  def __torch_function__(cls, func, types, args=(), kwargs=None):
+    if kwargs is None:
+        kwargs = {}
+    if not all(issubclass(t, QTensor) for t in types):
+      return NotImplemented
+    if func not in _HANDLED_FUNCTIONS:
+      res = super().__torch_function__(func, types, args, kwargs)
+      if isinstance(res, QTensor):
+        res.scale = args[0].scale
+        res.zero_point = args[0].zero_point
+      return res
+    return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
 def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
   # Calc Scale and zero point of next
@@ -115,7 +134,7 @@ def q_mul(input: QTensor, other: QTensor):
   check_dtype(other)
 
   def QTensor2Tensor32(tensor: QTensor)->torch.Tensor:
-    return (tensor.to(torch.int16) - tensor.zero_point).to(torch.int32)
+    return (torch.Tensor(tensor).to(torch.int16) - tensor.zero_point).to(torch.int32)
 
   result_tensor = QTensor2Tensor32(input) * QTensor2Tensor32(other)
   result_scale = input.scale * other.scale
@@ -134,5 +153,5 @@ def q_mm(input: QTensor, mat2: QTensor)->QTensor:
   c = QTensor(tensor=torch.zeros(ar, bc, dtype=torch.int32), scale=input.scale * mat2.scale, zero_point=0)
   for i in range(ar):
       for j in range(bc):
-          c[i,j] = (q_mul(input[i,:], mat2[:,j])).sum() # multiply all of column j by all of row i and sum it
+          c[i,j] = (input[i,:] * mat2[:,j]).sum() # multiply all of column j by all of row i and sum it
   return c

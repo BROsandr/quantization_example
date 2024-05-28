@@ -248,7 +248,7 @@ class TestMyMMQuant(unittest.TestCase):
     b = torch.tensor([[5, 6], [7, 8]], dtype=torch.uint8, requires_grad=False)
     with torch.no_grad():
       expected = torch.mm(a, b)
-      actual = q_mm(quantize_tensor(a), quantize_tensor(b))
+      actual = quantize_tensor(a).mm(quantize_tensor(b))
     cmp_res = torch.allclose(expected.to(torch.float32), dequantize_tensor(actual))
     self.assertTrue(cmp_res)
 
