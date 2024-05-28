@@ -48,6 +48,14 @@ class QTensor(torch.Tensor):
       return res
     return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
+  @classmethod
+  def quantize(cls, x: torch.Tensor, num_bits=8, min_val=None, max_val=None):
+    assert(isinstance(x, torch.Tensor))
+    return quantize_tensor(x=x, num_bits=num_bits, min_val=min_val, max_val=max_val)
+
+  def dequantize(self)->torch.Tensor:
+    return dequantize_tensor(self)
+
 def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
   # Calc Scale and zero point of next
   qmin = 0.
