@@ -36,6 +36,9 @@ class QTensor(torch.Tensor):
   def __mul__(self, other: "QTensor") -> "QTensor":
     return q_mul(self, other)
 
+  def __matmul__(self, other):
+    return torch.matmul(self, other)
+
   @classmethod
   def __torch_function__(cls, func, types, args=(), kwargs=None):
     if kwargs is None:
