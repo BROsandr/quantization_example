@@ -20,18 +20,9 @@ class QTensor(torch.Tensor):
   def __init__(self, tensor: torch.Tensor, scale: float, zero_point: int = 0):
     super().__init__()
 
-    self.tensor = tensor
+    assert(self.dtype in (torch.uint8, torch.int8, torch.int16, torch.int32))
     self.scale = scale
     self.zero_point = zero_point
-
-  @property
-  def tensor(self):
-    return self._tensor
-
-  @tensor.setter
-  def tensor(self, new_data: torch.Tensor):
-    assert(self.dtype in (torch.uint8, torch.int8, torch.int16, torch.int32))
-    self._tensor = new_data
 
   def clone(self, new_tensor=None, *args, **kwargs) -> "QTensor":
     if new_tensor is None:
@@ -43,13 +34,6 @@ class QTensor(torch.Tensor):
 
   def __mul__(self, other: "QTensor") -> "QTensor":
     return q_mul(self, other)
-
-  def to(self, *args, **kwargs) -> "QTensor":
-    new_obj = self.clone()
-    tempTensor=super().to(*args, **kwargs)
-    new_obj.data=tempTensor.data
-    new_obj.requires_grad=tempTensor.requires_grad
-    return new_obj
 
   @classmethod
   def __torch_function__(cls, func, types, args=(), kwargs=None):
@@ -111,7 +95,7 @@ def quantize_tensor(x: torch.Tensor, num_bits=8, min_val=None, max_val=None)->QT
     return QTensor(tensor=q_x, scale=scale, zero_point=zero_point)
 
 def dequantize_tensor(q_x: QTensor)->torch.Tensor:
-    return q_x.scale * (q_x.tensor.float() - q_x.zero_point)
+    return q_x.scale * (torch.Tensor(q_x).float() - q_x.zero_point)
 
 def q_mul(input: QTensor, other: QTensor):
 
