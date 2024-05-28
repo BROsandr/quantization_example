@@ -1,4 +1,4 @@
-from typing import Sequence, Iterable
+from typing import Sequence, Iterable, Any
 import torch
 import logging
 logger = logging
@@ -203,4 +203,25 @@ def q_matmul(input: torch.Tensor, other: torch.Tensor)->torch.Tensor:
   out = cat_tensors(batch_out)
   denormalize_shape(out)
 
+  return out
+
+@implements(torch.conv2d)
+def q_conv2d(input, weight, bias = None, stride: Any = 1, padding: Any = 0)->torch.Tensor:
+  # see implementation in https://pytorch.org/docs/stable/generated/torch.nn.Unfold.html
+
+  from math import floor
+
+  if isinstance(stride, int): stride = (stride, stride)
+  if isinstance(padding, int): padding = (padding, padding)
+  dilation = [1, 1]
+
+  inp_unf = torch.nn.functional.unfold(input=input, kernel_size=weight.shape[-2:], padding=padding, stride=stride)
+
+  out_unf = torch.matmul(inp_unf.transpose(1, 2), (weight.view(weight.size(0), -1).t())).transpose(1, 2)
+
+  # see h_out, w_out formulas in https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html#torch.nn.Conv2d
+  h_out = floor((input.shape[-2] + 2 * padding[0] - dilation[0] * (weight.shape[-2] - 1) - 1) / stride[0] + 1)
+  w_out = floor((input.shape[-1] + 2 * padding[1] - dilation[1] * (weight.shape[-1] - 1) - 1) / stride[1] + 1)
+  out = torch.nn.functional.fold(input=out_unf, output_size=(h_out, w_out), kernel_size=(1, 1))
+  if bias is not None: out += bias[..., None, None]
   return out
