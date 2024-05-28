@@ -9,6 +9,7 @@ import random
 import os
 from broquant.QTensor import dequantize_tensor, quantize_tensor, q_mm
 from typing import Iterable, Any
+from math import ceil
 
 import logging
 logger = logging
@@ -250,6 +251,20 @@ class TestMyMMQuant(unittest.TestCase):
       expected = torch.mm(a, b)
       actual = quantize_tensor(a).mm(quantize_tensor(b))
     cmp_res = torch.allclose(expected.to(torch.float32), dequantize_tensor(actual))
+    self.assertTrue(cmp_res)
+
+  def test_random(self):
+    h1_dim = random.randint(2, 2)
+    w1_dim = random.randint(2, 2)
+    w2_dim = random.randint(2, 2)
+    maxint = int(2 ** 8 - 1)
+    a = torch.randint(maxint, (h1_dim, w1_dim), dtype=torch.uint8, requires_grad=False)
+    b = torch.randint(maxint, (w1_dim, w2_dim), dtype=torch.uint8, requires_grad=False)
+    logger.debug(f"a.shape:{a.shape}, b.shape:{b.shape}")
+    with torch.no_grad():
+      expected = torch.mm(a.to(torch.int32), b.to(torch.int32))
+      actual = quantize_tensor(a).mm(quantize_tensor(b))
+    cmp_res = torch.allclose(expected.to(torch.float32), dequantize_tensor(actual),atol=ceil(actual.scale/2), rtol=0.1)
     self.assertTrue(cmp_res)
 
 class TestConst(unittest.TestCase):
