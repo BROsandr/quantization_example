@@ -1,7 +1,5 @@
-from torch.nn.functional import conv2d
-from broquant.QTensor import implements
+import torch.nn.functional
 
-@implements(conv2d)
 def q_conv2d(input, weight, bias=None, stride=1, padding=0):
   # TODO:
   # Algorithm:
@@ -10,9 +8,19 @@ def q_conv2d(input, weight, bias=None, stride=1, padding=0):
   # 3. matmul will yield int32 with scale = s1 * s2. Fold will do channel-wise addition of the matmul's result (int32 + int32). Then we add to the fold's result the bias, quantized with the scale = s1 * s2 and the bias = 0.
   # 4. conv2d thus yields int32 with the scale = s1 * s2, the bias = 0. A caller can apply an activation function or requantize-rescale.
 
-  from broquant.QTensor import quantize_tensor, dequantize_tensor
-  input = dequantize_tensor(input)
-  weight = dequantize_tensor(weight)
-  if bias is not None:
-    bias = dequantize_tensor(bias)
-  return quantize_tensor(conv2d(input=input, weight=weight, bias=bias, stride=stride, padding=padding))
+  from math import floor
+
+  if isinstance(stride, int): stride = (stride, stride)
+  if isinstance(padding, int): padding = (padding, padding)
+  dilation = [1, 1]
+
+  inp_unf = torch.nn.functional.unfold(input=input, kernel_size=weight.shape[-2:], padding=padding, stride=stride)
+
+  out_unf = torch.matmul(inp_unf.transpose(1, 2), (weight.view(weight.size(0), -1).t())).transpose(1, 2)
+
+  # see h_out, w_out formulas in https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html#torch.nn.Conv2d
+  h_out = floor((input.shape[-2] + 2 * padding[0] - dilation[0] * (weight.shape[-2] - 1) - 1) / stride[0] + 1)
+  w_out = floor((input.shape[-1] + 2 * padding[1] - dilation[1] * (weight.shape[-1] - 1) - 1) / stride[1] + 1)
+  out = torch.nn.functional.fold(input=out_unf, output_size=(h_out, w_out), kernel_size=(1, 1))
+  if bias is not None: out += bias[..., None, None]
+  return out
