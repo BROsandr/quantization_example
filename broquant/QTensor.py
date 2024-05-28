@@ -1,3 +1,4 @@
+from typing import Sequence
 import torch
 import logging
 logger = logging
@@ -42,6 +43,11 @@ class QTensor(torch.Tensor):
     if not all(issubclass(t, QTensor) for t in types):
       return NotImplemented
     if func not in _HANDLED_FUNCTIONS:
+      tensors = [tensor for tensor in args if isinstance(tensor, QTensor)]
+      def is_same_scale_zp(tensors: Sequence) -> bool:
+        return all((tensors[0].scale == tensor.scale) and (tensors[0].zero_point == tensor.zero_point) for tensor in tensors)
+      if (len(tensors) > 1) and (not is_same_scale_zp(tensors)):
+        return NotImplemented(f'QTensors have different scale/zp in func:{func}. Provide a specific handler if want to apply the func.')
       res = super().__torch_function__(func, types, args, kwargs)
       if isinstance(res, QTensor):
         res = args[0].clone(new_tensor=res)
