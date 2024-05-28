@@ -56,7 +56,7 @@ def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
   if min_val != max_val: # do the min-max quantization with the bias and the activation
     scale = (max_val - min_val) / (qmax - qmin)
 
-    zero_point = (qmin - min_val / scale).round()
+    zero_point = round(qmin - min_val / scale)
   else: # do the nearest scale quantization without the bias
     val = min_val
     min_zero_scaled = (-1 << (num_bits - 1))
@@ -87,7 +87,7 @@ def quantize_tensor(x: torch.Tensor, num_bits=8, min_val=None, max_val=None)->QT
     qmin = 0.
     qmax = 2.**num_bits - 1.
 
-    scale, zero_point = calcScaleZeroPoint(min_val, max_val, num_bits)
+    scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), num_bits)
     q_x = zero_point + x / scale
     q_x.round_().clamp_(qmin, qmax)
     q_x = q_x.byte()
