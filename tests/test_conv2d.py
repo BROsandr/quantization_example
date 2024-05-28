@@ -297,7 +297,11 @@ class TestConst(unittest.TestCase):
     y = F.conv2d(x, weight=weight, bias=bias)
     self.assertTrue(torch.all(torch.eq(y, torch.tensor([[[17.]]]))))
 
-    q_y = F.conv2d(quantize_tensor(x), weight=quantize_tensor(weight), bias=quantize_tensor(bias))
+    q_x = QTensor.quantize(x)
+    q_weight = QTensor.quantize(weight)
+    q_bias = QTensor.quantize(bias, scale=(q_x.scale*q_weight.scale), zero_point=0)
+
+    q_y = F.conv2d(q_x, weight=q_weight, bias=q_bias)
     self.assertTrue(torch.all(torch.eq(dequantize_tensor(q_y), torch.tensor([[[17.]]]))))
 
   def test_const(self):

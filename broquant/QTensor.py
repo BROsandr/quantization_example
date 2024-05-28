@@ -60,9 +60,9 @@ class QTensor(torch.Tensor):
     return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
   @classmethod
-  def quantize(cls, x: torch.Tensor, num_bits=8, min_val=None, max_val=None):
+  def quantize(cls, x: torch.Tensor, num_bits=8, min_val=None, max_val=None, scale=None, zero_point=0):
     assert(isinstance(x, torch.Tensor))
-    return quantize_tensor(x=x, num_bits=num_bits, min_val=min_val, max_val=max_val)
+    return quantize_tensor(x=x, num_bits=num_bits, min_val=min_val, max_val=max_val, scale=scale, zero_point=zero_point)
 
   def dequantize(self)->torch.Tensor:
     return dequantize_tensor(self)
@@ -98,7 +98,7 @@ def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
 
   return scale, zero_point
 
-def quantize_tensor(x: torch.Tensor, num_bits=8, min_val=None, max_val=None)->QTensor:
+def quantize_tensor(x: torch.Tensor, num_bits=8, min_val=None, max_val=None, scale=None, zero_point=0)->QTensor:
 
     if not min_val and not max_val:
       min_val, max_val = x.min(), x.max()
@@ -106,7 +106,8 @@ def quantize_tensor(x: torch.Tensor, num_bits=8, min_val=None, max_val=None)->QT
     qmin = 0.
     qmax = 2.**num_bits - 1.
 
-    scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), num_bits)
+    if not scale:
+      scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), num_bits)
     q_x = zero_point + x / scale
     q_x.round_().clamp_(qmin, qmax)
     q_x = q_x.byte()
