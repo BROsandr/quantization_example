@@ -56,7 +56,7 @@ def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
   if min_val != max_val: # do the min-max quantization with the bias and the activation
     scale = (max_val - min_val) / (qmax - qmin)
 
-    zero_point = int(qmin - min_val / scale)
+    zero_point = (qmin - min_val / scale).round()
   else: # do the nearest scale quantization without the bias
     val = min_val
     min_zero_scaled = (-1 << (num_bits - 1))
@@ -75,7 +75,7 @@ def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
       return scale * 2 # Because we did one iteration past the actual
     scale = find_scale(val)
 
-    zero_point = int(-min_zero_scaled * scale) # convert to uint range. Note that here we use multiplication not division. The divison is used in the case of min_val.
+    zero_point = round(-min_zero_scaled * scale) # convert to uint range. Note that here we use multiplication not division. The divison is used in the case of min_val.
 
   return scale, zero_point
 
