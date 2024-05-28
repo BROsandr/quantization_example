@@ -38,9 +38,6 @@ class QTensor(torch.Tensor):
       new_tensor = super().clone(*args, **kwargs)
     return QTensor(tensor=new_tensor, scale=self.scale, zero_point=self.zero_point)
 
-  def __getitem__(self, *args, **kwargs) -> "QTensor":
-    return self.clone(new_tensor=super().__getitem__(*args, **kwargs))
-
   def mm(self, mat2: "QTensor") -> "QTensor":
     return q_mm(self, mat2)
 
@@ -63,8 +60,7 @@ class QTensor(torch.Tensor):
     if func not in _HANDLED_FUNCTIONS:
       res = super().__torch_function__(func, types, args, kwargs)
       if isinstance(res, QTensor):
-        res.scale = args[0].scale
-        res.zero_point = args[0].zero_point
+        res = args[0].clone(new_tensor=res)
       return res
     return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
@@ -153,5 +149,5 @@ def q_mm(input: QTensor, mat2: QTensor)->QTensor:
   c = QTensor(tensor=torch.zeros(ar, bc, dtype=torch.int32), scale=input.scale * mat2.scale, zero_point=0)
   for i in range(ar):
       for j in range(bc):
-          c[i,j] = (input[i,:] * mat2[:,j]).sum() # multiply all of column j by all of row i and sum it
+          c[i,j] = (input[i,:] * mat2[:,j]).sum(dtype=c.dtype) # multiply all of column j by all of row i and sum it
   return c
