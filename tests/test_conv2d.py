@@ -7,7 +7,7 @@ from torch.nn import functional as F
 import torch.nn as nn
 import random
 import os
-from broquant.QTensor import dequantize_tensor, quantize_tensor, q_mm
+from broquant.QTensor import dequantize_tensor, quantize_tensor, QTensor
 from typing import Iterable, Any
 from math import ceil
 
@@ -265,6 +265,16 @@ class TestMyMMQuant(unittest.TestCase):
       expected = torch.mm(a.to(torch.int32), b.to(torch.int32))
       actual = quantize_tensor(a).mm(quantize_tensor(b))
     cmp_res = torch.allclose(expected.to(torch.float32), dequantize_tensor(actual),atol=ceil(actual.scale/2), rtol=0.1)
+    self.assertTrue(cmp_res)
+
+class TestMatmulQuant(unittest.TestCase):
+  def test_2x2(self):
+    a = torch.tensor([[1, 2], [3, 4]], dtype=torch.uint8, requires_grad=False)
+    b = torch.tensor([[5, 6], [7, 8]], dtype=torch.uint8, requires_grad=False)
+    with torch.no_grad():
+      expected = a @ b
+      actual = torch.matmul(QTensor.quantize(a),QTensor.quantize(b))
+    cmp_res = torch.allclose(expected.to(torch.float32), actual.dequantize())
     self.assertTrue(cmp_res)
 
 class TestConst(unittest.TestCase):
