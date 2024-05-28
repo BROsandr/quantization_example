@@ -89,7 +89,7 @@ def quantize_tensor(x: torch.Tensor, num_bits=8, min_val=None, max_val=None)->QT
 
     scale, zero_point = calcScaleZeroPoint(min_val, max_val, num_bits)
     q_x = zero_point + x / scale
-    q_x.clamp_(qmin, qmax).round_()
+    q_x.round_().clamp_(qmin, qmax)
     q_x = q_x.byte()
 
     return QTensor(tensor=q_x, scale=scale, zero_point=zero_point)
