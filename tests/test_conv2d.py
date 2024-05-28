@@ -299,7 +299,7 @@ class TestConst(unittest.TestCase):
 
     q_x = QTensor.quantize(x)
     q_weight = QTensor.quantize(weight)
-    q_bias = QTensor.quantize(bias, scale=(q_x.scale*q_weight.scale), zero_point=0)
+    q_bias = QTensor.quantize(bias, scale=(q_x.scale*q_weight.scale), zero_point=0, dtype=torch.int32)
 
     q_y = F.conv2d(q_x, weight=q_weight, bias=q_bias)
     self.assertTrue(torch.all(torch.eq(dequantize_tensor(q_y), torch.tensor([[[17.]]]))))
@@ -307,7 +307,6 @@ class TestConst(unittest.TestCase):
   def test_const(self):
     ...
 
-@unittest.expectedFailure
 class TestRandom(unittest.TestCase):
   def setUp(self):
     self.randomizer = Conv2dRandomizer(SEED=_SEED)
@@ -326,8 +325,12 @@ class TestRandom(unittest.TestCase):
     input = randomizer.input
     weight = randomizer.weight
     bias = randomizer.bias
-    actual: torch.Tensor=self.call(input=input, weight=weight, bias=bias)
-    expected: torch.Tensor=dequantize_tensor(self.call(input=quantize_tensor(input), weight=quantize_tensor(weight), bias=quantize_tensor(bias)))
+    with torch.no_grad():
+      actual: torch.Tensor=self.call(input=input, weight=weight, bias=bias)
+      q_input = QTensor.quantize(input)
+      q_weight = QTensor.quantize(weight)
+      q_bias = QTensor.quantize(bias, scale=(q_input.scale*q_weight.scale), zero_point=0, dtype=torch.int32)
+      expected: torch.Tensor=self.call(input=q_input, weight=q_weight, bias=q_bias).dequantize()
     self.assertTrue(torch.allclose(input=actual, other=expected, rtol=0.1, atol=0.1))
 
   def test_run(self):

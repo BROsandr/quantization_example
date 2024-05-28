@@ -60,26 +60,22 @@ class QTensor(torch.Tensor):
     return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
   @classmethod
-  def quantize(cls, x: torch.Tensor, num_bits=8, min_val=None, max_val=None, scale=None, zero_point=0):
+  def quantize(cls, x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0):
     assert(isinstance(x, torch.Tensor))
-    return quantize_tensor(x=x, num_bits=num_bits, min_val=min_val, max_val=max_val, scale=scale, zero_point=zero_point)
+    return quantize_tensor(x=x, dtype=dtype, min_val=min_val, max_val=max_val, scale=scale, zero_point=zero_point)
 
   def dequantize(self)->torch.Tensor:
     return dequantize_tensor(self)
 
-def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
-  # Calc Scale and zero point of next
-  qmin = 0.
-  qmax = 2 ** num_bits - 1.
-
+def calcScaleZeroPoint(min_val, max_val, qmin, qmax)->tuple[float, int]:
   if min_val != max_val: # do the min-max quantization with the bias and the activation
     scale = (max_val - min_val) / (qmax - qmin)
 
     zero_point = round(qmin - min_val / scale)
   else: # do the nearest scale quantization without the bias
     val = min_val
-    min_zero_scaled = (-1 << (num_bits - 1))
-    max_zero_scaled = ( 1 << (num_bits - 1)) - 1
+    min_zero_scaled = qmin
+    max_zero_scaled = qmax
     if not (min_zero_scaled <= val <= max_zero_scaled):
       raise ValueError(f"A quantized value is outside range [{min_zero_scaled}; {max_zero_scaled}], when min_val == max_val")
     logger.warning("Qunatizing a value when min_val == max_val. This is a low precision mode.")
@@ -98,19 +94,35 @@ def calcScaleZeroPoint(min_val, max_val,num_bits=8)->tuple[float, int]:
 
   return scale, zero_point
 
-def quantize_tensor(x: torch.Tensor, num_bits=8, min_val=None, max_val=None, scale=None, zero_point=0)->QTensor:
+def quantize_tensor(x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0)->QTensor:
+
+    def dtype2min_max(dtype)->tuple[int, int]:
+      def get_min_max(num_bits: int, is_signed: bool)->tuple[int, int]:
+        if is_signed:
+          return -1 << (num_bits - 1), ( 1 << (num_bits - 1)) - 1
+        else:
+          return 0, ( (1 << num_bits) - 1)
+      num_bits_map = {
+        torch.uint8: (8 , False),
+        torch.int8 : (8 , True ),
+        torch.int16: (16, True ),
+        torch.int32: (32, True ),
+      }
+      try:
+        return get_min_max(*num_bits_map[dtype])
+      except KeyError:
+        raise NotImplementedError(f'Unsupported argument dtype:{dtype}. Valid dtypes are: {num_bits_map.keys()}.')
+
+    qmin, qmax = dtype2min_max(dtype)
 
     if not min_val and not max_val:
       min_val, max_val = x.min(), x.max()
 
-    qmin = 0.
-    qmax = 2.**num_bits - 1.
-
     if not scale:
-      scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), num_bits)
+      scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), qmin=qmin, qmax=qmax)
     q_x = zero_point + x / scale
     q_x.round_().clamp_(qmin, qmax)
-    q_x = q_x.byte()
+    q_x = q_x.to(dtype)
 
     return QTensor(tensor=q_x, scale=scale, zero_point=zero_point)
 
