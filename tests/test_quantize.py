@@ -4,7 +4,6 @@ if __name__ == '__main__': sys.path.append('.')
 import torch
 from broquant.QTensor import dequantize_tensor, quantize_tensor
 import random
-from math import ceil
 
 import logging
 logger = logging
@@ -16,13 +15,13 @@ class TestQuantize(unittest.TestCase):
           [ 68,  67]], dtype=torch.uint8)
 
     q_x = quantize_tensor(x)
-    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=ceil(q_x.scale/2)))
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=q_x.scale/2))
 
   def test_quantize_1x1(self):
     x = torch.tensor([123], dtype=torch.uint8)
 
     q_x = quantize_tensor(x)
-    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=ceil(q_x.scale/2)))
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=q_x.scale/2))
 
   def test_quantize_1x1_neg(self):
     x = torch.tensor([-61.])
@@ -31,19 +30,19 @@ class TestQuantize(unittest.TestCase):
       q_x = quantize_tensor(x, dtype=torch.uint8)
 
     q_x = quantize_tensor(x.float(), dtype=torch.int8)
-    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=ceil(q_x.scale/2)))
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=q_x.scale/2))
 
   def test_quantize_int16(self):
     x = torch.tensor([-320.])
 
     q_x = quantize_tensor(x.float(), dtype=torch.int16)
-    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=ceil(q_x.scale/2)))
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=q_x.scale/2))
 
   def test_two_int16(self):
     x = torch.tensor([-320., 161])
 
     q_x = quantize_tensor(x.float(), dtype=torch.int16)
-    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=ceil(q_x.scale/2)))
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=q_x.scale/2))
 
   def test_rand(self):
     w_dim = random.randint(1, 100)
@@ -52,7 +51,7 @@ class TestQuantize(unittest.TestCase):
     x = torch.randint(maxint, (h_dim, w_dim), dtype=torch.uint8, requires_grad=False)
     logger.debug(f"x.shape:{x.shape}")
     q_x = quantize_tensor(x)
-    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=ceil(q_x.scale/2)))
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=q_x.scale/2))
 
   def test_rand_float(self):
     w_dim = random.randint(1, 100)
@@ -60,7 +59,7 @@ class TestQuantize(unittest.TestCase):
     x = torch.rand((h_dim, w_dim), requires_grad=False)
     logger.debug(f"x.shape:{x.shape}")
     q_x = quantize_tensor(x)
-    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x, atol=ceil(q_x.scale/2)))
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x, atol=q_x.scale/2))
 
 if __name__ == '__main__':
   unittest.main()

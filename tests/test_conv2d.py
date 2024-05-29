@@ -9,7 +9,6 @@ import random
 import os
 from broquant.QTensor import dequantize_tensor, quantize_tensor, QTensor
 from typing import Iterable, Any
-from math import ceil
 
 import logging
 logger = logging
@@ -263,7 +262,7 @@ class TestMyMMQuant(unittest.TestCase):
     with torch.no_grad():
       expected = torch.mm(a.to(torch.int32), b.to(torch.int32))
       actual = quantize_tensor(a).mm(quantize_tensor(b))
-    cmp_res = torch.allclose(expected.to(torch.float32), dequantize_tensor(actual),atol=ceil(actual.scale/2), rtol=0.1)
+    cmp_res = torch.allclose(expected.to(torch.float32), dequantize_tensor(actual),atol=actual.scale/2, rtol=0.1)
     self.assertTrue(cmp_res)
 
 class TestMatmulQuant(unittest.TestCase):
