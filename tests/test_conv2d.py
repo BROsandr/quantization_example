@@ -28,7 +28,7 @@ set_default_seed()
 def calc_max_mm_atol(a: QTensor, b: QTensor)->float:
   a_tol_tensor = TolTensor.from_QTensor(a)
   b_tol_tensor = TolTensor.from_QTensor(b)
-  return a_tol_tensor.mm(b_tol_tensor).max().item()
+  return a_tol_tensor.mm(b_tol_tensor).atol
 
 class Conv2dRandomizer:
   def __init__(self, *args, **kwargs):

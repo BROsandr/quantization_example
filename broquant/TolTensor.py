@@ -85,10 +85,13 @@ def calc_mm_atol(a, b)->TolTensor:
   br,bc = b.shape
   assert ac==br
   c = torch.zeros(ar, bc)
+  max_atol = 0.
   for i in range(ar):
       for j in range(bc):
-          c[i,j] = (a[i,:] * b[:,j]).sum() # multiply all of column j by all of row i and sum it
-  return c
+          el = (a[i,:] * b[:,j]).sum() # multiply all of column j by all of row i and sum it
+          max_atol = max(max_atol, el.atol)
+          c[i,j] = el
+  return TolTensor(tensor=c, atol=max_atol)
 
 @implements(torch.mul)
 def tol_tensor_mul(input, other):
