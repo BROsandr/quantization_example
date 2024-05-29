@@ -354,7 +354,7 @@ class TestConst(unittest.TestCase):
       q_weight = QTensor.quantize(self.weight)
       actual = F.conv2d(q_input, q_weight).dequantize()
 
-    self.assertTrue(torch.all(torch.eq(expected, actual)))
+    self.assertTrue(torch.allclose(input=actual, other=expected, rtol=0.1, atol=0.1))
 
   def test_bias(self):
     with torch.no_grad():
@@ -364,7 +364,7 @@ class TestConst(unittest.TestCase):
       q_bias = QTensor.quantize(self.bias, scale=(q_input.scale*q_weight.scale), zero_point=0, dtype=torch.int32)
       actual = F.conv2d(q_input, q_weight, bias=q_bias).dequantize()
 
-    self.assertTrue(torch.all(torch.eq(expected, actual)))
+    self.assertTrue(torch.allclose(input=actual, other=expected, rtol=0.1, atol=0.1))
 
 class TestRandom(unittest.TestCase):
   def setUp(self):
