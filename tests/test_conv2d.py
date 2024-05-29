@@ -385,11 +385,11 @@ class TestRandom(unittest.TestCase):
     weight = randomizer.weight
     bias = randomizer.bias
     with torch.no_grad():
-      actual: torch.Tensor=self.call(input=input, weight=weight, bias=bias)
+      expected: torch.Tensor=self.call(input=input, weight=weight, bias=bias)
       q_input = QTensor.quantize(input)
       q_weight = QTensor.quantize(weight)
       q_bias = QTensor.quantize(bias, scale=(q_input.scale*q_weight.scale), zero_point=0, dtype=torch.int32)
-      expected: torch.Tensor=self.call(input=q_input, weight=q_weight, bias=q_bias).dequantize()
+      actual: torch.Tensor=self.call(input=q_input, weight=q_weight, bias=q_bias).dequantize()
     self.assertTrue(torch.allclose(input=actual, other=expected, rtol=0.1, atol=0.1))
 
   def test_run(self):
