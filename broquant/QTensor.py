@@ -32,6 +32,13 @@ class QTensor(torch.Tensor):
   def __mul__(self, other: "QTensor") -> "QTensor":
     return torch.mul(self, other)
 
+  def __imul__(self, other: "QTensor") -> "QTensor":
+    return self.mul_(other)
+
+  def mul_(self, other: "QTensor") -> "QTensor":
+    self = torch.mul(self, other)
+    return self
+
   def mul(self, other: "QTensor") -> "QTensor":
     return torch.mul(self, other)
 
@@ -40,6 +47,13 @@ class QTensor(torch.Tensor):
 
   def matmul(self, other):
     return torch.matmul(self, other)
+
+  def __imatmul__(self, other: "QTensor") -> "QTensor":
+    return self.matmul_(other)
+
+  def matmul_(self, other: "QTensor") -> "QTensor":
+    self = torch.matmul(self, other)
+    return self
 
   @classmethod
   def __torch_function__(cls, func, types, args=(), kwargs=None):

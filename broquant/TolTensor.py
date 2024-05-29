@@ -39,6 +39,31 @@ class TolTensor(torch.Tensor):
   def add(self, other):
     return torch.add(self, other)
 
+  def mul_(self, other: "TolTensor") -> "TolTensor":
+    self = torch.mul(self, other)
+    return self
+
+  def __imul__(self, other: "TolTensor") -> "TolTensor":
+    return self.mul_(other)
+
+  def __iadd__(self, other):
+    return self.add_(other)
+
+  def __isub__(self, other):
+    return self.sub_(other)
+
+  def matmul_(self, other):
+    self = torch.matmul(self, other)
+    return self
+
+  def add_(self, other):
+    self = torch.add(self, other)
+    return self
+
+  def sub_(self, other):
+    self = torch.sub(self, other)
+    return self
+
   def __sub__(self, other):
     return torch.add(self, -other)
 
