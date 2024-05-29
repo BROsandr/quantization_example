@@ -29,8 +29,14 @@ class TolTensor(torch.Tensor):
   def __mul__(self, other: "TolTensor") -> "TolTensor":
     return torch.mul(self, other)
 
+  def __add__(self, other):
+    return torch.add(self, other)
+
   def __matmul__(self, other):
     return torch.matmul(self, other)
+
+  def sum(self, dtype=None):
+    return torch.sum(self, dtype=dtype)
 
   @classmethod
   def __torch_function__(cls, func, types, args=(), kwargs=None):
@@ -72,7 +78,7 @@ def calc_mm_atol(a, b)->TolTensor:
   c = torch.zeros(ar, bc)
   for i in range(ar):
       for j in range(bc):
-          mult_tol = a_float[i,:].abs() * b_quant_tol + b_float[:,j].abs() * a_quant_tol
+          mult_tol = a_float[i,:] * b_float[:,j]
           c[i,j] = (mult_tol).sum() # multiply all of column j by all of row i and sum it
   return c
 
@@ -88,4 +94,27 @@ def tol_tensor_mul(input, other):
     tensor_res = torch.Tensor(other)
   res_atol = tensor_atol.max().item() if tensor_atol is not None else input.atol * other
   res = torch.Tensor(input) * (tensor_res if tensor_res is not None else other)
+  return TolTensor(tensor=res, atol=res_atol)
+
+@implements(torch.add)
+def tol_tensor_add(input, other):
+  """
+    Returns an add result with atol calculated as sum of input's atol and other's atol (if other is tensor).
+  """
+  tensor_atol = None
+  tensor_res = None
+  if isinstance(other, TolTensor):
+    tensor_atol = input.atol + other.atol
+    tensor_res = torch.Tensor(other)
+  res_atol = tensor_atol if tensor_atol is not None else input.atol
+  res = torch.Tensor(input) + (tensor_res if tensor_res is not None else other)
+  return TolTensor(tensor=res, atol=res_atol)
+
+@implements(torch.sum)
+def tol_tensor_sum(input, dtype=None):
+  """
+    Returns a sum result with atol calculated as sum of every element's atol in input.
+  """
+  res = torch.Tensor(input).sum(dtype=dtype)
+  res_atol = input.numel() * input.atol
   return TolTensor(tensor=res, atol=res_atol)
