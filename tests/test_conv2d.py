@@ -217,7 +217,7 @@ class TestMyConv2d(unittest.TestCase):
     with torch.no_grad():
       expected = F.conv2d(input, weight=weight, bias=bias, padding=padding, stride=stride)
       actual = self.my_conv2d(input, weight=weight, bias=bias, padding=padding, stride=stride)
-    cmp_res = torch.allclose(expected, actual, atol=1e-04) # it is unexpected that there is atol. Probably due to python-c differences.
+    cmp_res = torch.allclose(other=expected, input=actual, atol=1e-04) # it is unexpected that there is atol. Probably due to python-c differences.
     self.assertTrue(cmp_res)
 
 class TestMyMM(unittest.TestCase):
@@ -248,7 +248,7 @@ class TestMyMMQuant(unittest.TestCase):
     with torch.no_grad():
       expected = torch.mm(a, b)
       actual = quantize_tensor(a).mm(quantize_tensor(b))
-    cmp_res = torch.allclose(expected.to(torch.float32), dequantize_tensor(actual))
+    cmp_res = torch.allclose(other=expected.to(torch.float32), input=dequantize_tensor(actual))
     self.assertTrue(cmp_res)
 
   def test_const1(self):
@@ -289,7 +289,7 @@ class TestMyMMQuant(unittest.TestCase):
     with torch.no_grad():
       expected = torch.mm(a, b)
       actual = QTensor.quantize(a).mm(QTensor.quantize(b))
-    cmp_res = torch.allclose(expected, actual.dequantize(),atol=actual.scale/2, rtol=0.1)
+    cmp_res = torch.allclose(other=expected, input=actual.dequantize(),atol=actual.scale/2, rtol=0.1)
     self.assertTrue(cmp_res)
 
   def test_random(self):
@@ -303,7 +303,7 @@ class TestMyMMQuant(unittest.TestCase):
     with torch.no_grad():
       expected = torch.mm(a.to(torch.int32), b.to(torch.int32))
       actual = quantize_tensor(a).mm(quantize_tensor(b))
-    cmp_res = torch.allclose(expected.to(torch.float32), dequantize_tensor(actual),atol=actual.scale/2, rtol=0.1)
+    cmp_res = torch.allclose(other=expected.to(torch.float32), input=dequantize_tensor(actual),atol=actual.scale/2, rtol=0.1)
     self.assertTrue(cmp_res)
 
 class TestMatmulQuant(unittest.TestCase):
@@ -313,7 +313,7 @@ class TestMatmulQuant(unittest.TestCase):
     with torch.no_grad():
       expected = a @ b
       actual = torch.matmul(QTensor.quantize(a),QTensor.quantize(b))
-    cmp_res = torch.allclose(expected.to(torch.float32), actual.dequantize())
+    cmp_res = torch.allclose(other=expected.to(torch.float32), input=actual.dequantize())
     self.assertTrue(cmp_res)
 
 class TestConst(unittest.TestCase):
