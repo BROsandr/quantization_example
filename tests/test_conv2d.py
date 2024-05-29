@@ -20,17 +20,16 @@ def set_default_seed():
   global _SEED
   seed = os.environ.get('TEST_SEED', _SEED)
   _SEED = int(seed)
+  random.seed(_SEED)
+  torch.manual_seed(_SEED)
+  logger.debug(f'SEED:{_SEED}')
 
 set_default_seed()
 
 class Conv2dRandomizer:
-  def __init__(self, SEED, *args, **kwargs):
+  def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
-    self.SEED = SEED
-    random.seed(self.SEED)
-    torch.manual_seed(self.SEED)
     self.MAX_RAND = 10
-    logger.debug(f'Conv2dRandomizer.SEED:{self.SEED}')
 
   def randomize(self):
     dim = random.randint(1, self.MAX_RAND)
@@ -159,7 +158,7 @@ class TestMyConv2d(unittest.TestCase):
 
     self.bias = torch.tensor([5., 4.])
     self.ITER_NUM = 100
-    self.randomizer = Conv2dRandomizer(SEED=_SEED)
+    self.randomizer = Conv2dRandomizer()
 
   def test_weight_only(self):
 
@@ -309,8 +308,8 @@ class TestConst(unittest.TestCase):
 
 class TestRandom(unittest.TestCase):
   def setUp(self):
-    self.randomizer = Conv2dRandomizer(SEED=_SEED)
-    self.ITER_NUM = 100
+    self.randomizer = Conv2dRandomizer()
+    self.ITER_NUM = 1
 
   def call(self, input, weight, bias):
     randomizer = self.randomizer
