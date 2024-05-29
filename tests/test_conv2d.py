@@ -303,8 +303,68 @@ class TestConst(unittest.TestCase):
     q_y = F.conv2d(q_x, weight=q_weight, bias=q_bias)
     self.assertTrue(torch.all(torch.eq(dequantize_tensor(q_y), torch.tensor([[[17.]]]))))
 
-  def test_const(self):
-    ...
+  def setUp(self):
+    self.x = torch.tensor(
+        [[[[1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]],
+        [[1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]]],
+        [[[1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]],
+        [[1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]]]],
+        dtype=torch.float32
+    )
+    self.weight = torch.tensor(
+        [[[[0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+        [0, -1, 0]],
+        [[0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+        [0, -1, 0]]],
+        [[[0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+        [0, -1, 0]],
+        [[0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+        [0, -1, 0]]]],
+        dtype=torch.float32
+    )
+
+    self.bias = torch.tensor([5., 4.])
+    self.ITER_NUM = 100
+    self.randomizer = Conv2dRandomizer()
+
+  def test_weight_only(self):
+    with torch.no_grad():
+      expected = F.conv2d(self.x, weight=self.weight)
+      q_input = QTensor.quantize(self.x)
+      q_weight = QTensor.quantize(self.weight)
+      actual = F.conv2d(q_input, q_weight).dequantize()
+
+    self.assertTrue(torch.all(torch.eq(expected, actual)))
+
+  def test_bias(self):
+    with torch.no_grad():
+      expected = F.conv2d(self.x, weight=self.weight, bias=self.bias)
+      q_input = QTensor.quantize(self.x)
+      q_weight = QTensor.quantize(self.weight)
+      q_bias = QTensor.quantize(self.bias, scale=(q_input.scale*q_weight.scale), zero_point=0, dtype=torch.int32)
+      actual = F.conv2d(q_input, q_weight, bias=q_bias).dequantize()
+
+    self.assertTrue(torch.all(torch.eq(expected, actual)))
 
 class TestRandom(unittest.TestCase):
   def setUp(self):
