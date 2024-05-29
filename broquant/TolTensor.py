@@ -141,3 +141,10 @@ def tol_tensor_stack(tensors, *args, **kwargs):
 
 implements(torch.nn.functional.conv2d)(q_conv2d)
 implements(torch.matmul)(q_matmul)
+
+@implements(torch.nn.functional.fold)
+def q_fold(input, *args, **kwargs):
+  res=torch.nn.functional.fold(torch.Tensor(input), *args, **kwargs) # fold doesn't support int
+  if input.numel() != res.numel():
+    raise NotImplementedError("Number of output's elements differs from the input's. Implement atol recalculation.")
+  return TolTensor(tensor=res, atol=input.atol)
