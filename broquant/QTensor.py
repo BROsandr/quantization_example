@@ -225,3 +225,28 @@ def q_matmul(input: torch.Tensor, other: torch.Tensor)->torch.Tensor:
   return out
 
 implements(torch.nn.functional.conv2d)(q_conv2d)
+
+def calc_mm_atol(a: QTensor, b: QTensor)->torch.Tensor:
+  """
+    Calculates absolute tolerances of the corresponding element of a matrix multiplication result and returns a matrix with the tolerances.
+
+    see formulas at https://www.geol.lsu.edu/jlorenzo/geophysics/uncertainties/Uncertaintiespart2.html
+  """
+
+  # mm = sum(a*b)
+  ar,ac = a.shape
+  br,bc = b.shape
+  assert ac==br
+
+  a_float = a.dequantize()
+  b_float = b.dequantize()
+
+  a_quant_tol = a.scale / 2
+  b_quant_tol = b.scale / 2
+
+  c = torch.zeros(ar, bc)
+  for i in range(ar):
+      for j in range(bc):
+          mult_tol = a_float[i,:].abs() * b_quant_tol + b_float[:,j].abs() * a_quant_tol
+          c[i,j] = (mult_tol).sum() # multiply all of column j by all of row i and sum it
+  return c
