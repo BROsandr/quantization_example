@@ -86,6 +86,9 @@ class TolTensor(torch.Tensor):
     if not all(issubclass(t, TolTensor) for t in types):
       return NotImplemented
     if func not in _HANDLED_FUNCTIONS:
+      tensors = [tensor for tensor in args if isinstance(tensor, TolTensor)]
+      if len(tensors) > 1:
+        raise NotImplementedError(f'Multiple TolTensor arguments are passed in func:{func}. Provide a custom implementation for their atol handling.')
       res = super().__torch_function__(func, types, args, kwargs)
       if isinstance(res, TolTensor):
         arg = args[0][0] if isinstance(args[0], list) else args[0] # args[0] is list of QTensor for the func stack()
