@@ -26,8 +26,8 @@ class TolTensor(torch.Tensor):
   def mm(self, mat2: "TolTensor") -> "TolTensor":
     return calc_mm_atol(self, mat2)
 
-  # def __mul__(self, other: "TolTensor") -> "TolTensor":
-    #   return torch.mul(self, other)
+  def __mul__(self, other: "TolTensor") -> "TolTensor":
+    return torch.mul(self, other)
 
   def __matmul__(self, other):
     return torch.matmul(self, other)
@@ -75,3 +75,17 @@ def calc_mm_atol(a, b)->TolTensor:
           mult_tol = a_float[i,:].abs() * b_quant_tol + b_float[:,j].abs() * a_quant_tol
           c[i,j] = (mult_tol).sum() # multiply all of column j by all of row i and sum it
   return c
+
+@implements(torch.mul)
+def tol_tensor_mul(input, other):
+  """
+    Returns a mul result with atol calculated as maximum among all element product's tolerances.
+  """
+  tensor_atol = None
+  tensor_res = None
+  if isinstance(other, TolTensor):
+    tensor_atol = input.atol * torch.Tensor(other).abs() + other.atol * torch.Tensor(input).abs()
+    tensor_res = torch.Tensor(other)
+  res_atol = tensor_atol.max().item() if tensor_atol is not None else input.atol * other
+  res = torch.Tensor(input) * (tensor_res if tensor_res is not None else other)
+  return TolTensor(tensor=res, atol=res_atol)
