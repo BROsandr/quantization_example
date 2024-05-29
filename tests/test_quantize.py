@@ -33,6 +33,18 @@ class TestQuantize(unittest.TestCase):
     q_x = quantize_tensor(x.float(), dtype=torch.int8)
     self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=ceil(q_x.scale/2)))
 
+  def test_quantize_int16(self):
+    x = torch.tensor([-320.])
+
+    q_x = quantize_tensor(x.float(), dtype=torch.int16)
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=ceil(q_x.scale/2)))
+
+  def test_two_int16(self):
+    x = torch.tensor([-320., 161])
+
+    q_x = quantize_tensor(x.float(), dtype=torch.int16)
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x.float(), atol=ceil(q_x.scale/2)))
+
   def test_rand(self):
     w_dim = random.randint(1, 100)
     h_dim = random.randint(1, 100)
