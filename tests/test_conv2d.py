@@ -6,7 +6,8 @@ from torch.nn import functional as F
 import torch.nn as nn
 import random
 import os
-from broquant.QTensor import dequantize_tensor, quantize_tensor, QTensor, calc_mm_atol
+from broquant.QTensor import dequantize_tensor, quantize_tensor, QTensor
+from broquant.TolTensor import TolTensor
 from typing import Iterable, Any
 
 import logging
@@ -25,7 +26,9 @@ def set_default_seed():
 set_default_seed()
 
 def calc_max_mm_atol(a: QTensor, b: QTensor)->float:
-  return calc_mm_atol(a, b).max().item()
+  a_tol_tensor = TolTensor.from_QTensor(a)
+  b_tol_tensor = TolTensor.from_QTensor(b)
+  return a_tol_tensor.mm(b_tol_tensor).max().item()
 
 class Conv2dRandomizer:
   def __init__(self, *args, **kwargs):

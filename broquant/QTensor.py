@@ -2,18 +2,13 @@ from typing import Sequence, Iterable, Any
 import torch
 import logging
 from broquant.q_conv2d import q_conv2d
+from broquant.utils import Implements
+
 logger = logging
 
 _HANDLED_FUNCTIONS = {}
 
-import functools
-def implements(torch_function):
-  """Register a torch function override for QTensor"""
-  def decorator(func):
-      functools.update_wrapper(func, torch_function)
-      _HANDLED_FUNCTIONS[torch_function] = func
-      return func
-  return decorator
+implements = Implements(HANDLED_FUNCTIONS=_HANDLED_FUNCTIONS)
 
 class QTensor(torch.Tensor):
   def __new__(cls, tensor: torch.Tensor, scale: float, zero_point: int = 0, *args, **kwargs):
@@ -233,28 +228,3 @@ def q_unfold(input: QTensor, *args, **kwargs):
 @implements(torch.nn.functional.fold)
 def q_fold(input: QTensor, *args, **kwargs):
   return input.clone(new_tensor=torch.nn.functional.fold(torch.Tensor(input).float(), *args, **kwargs).to(input.dtype)) # fold doesn't support int
-
-def calc_mm_atol(a: QTensor, b: QTensor)->torch.Tensor:
-  """
-    Calculates absolute tolerances of the corresponding element of a matrix multiplication result and returns a matrix with the tolerances.
-
-    see formulas at https://www.geol.lsu.edu/jlorenzo/geophysics/uncertainties/Uncertaintiespart2.html
-  """
-
-  # mm = sum(a*b)
-  ar,ac = a.shape
-  br,bc = b.shape
-  assert ac==br
-
-  a_float = a.dequantize()
-  b_float = b.dequantize()
-
-  a_quant_tol = a.scale / 2
-  b_quant_tol = b.scale / 2
-
-  c = torch.zeros(ar, bc)
-  for i in range(ar):
-      for j in range(bc):
-          mult_tol = a_float[i,:].abs() * b_quant_tol + b_float[:,j].abs() * a_quant_tol
-          c[i,j] = (mult_tol).sum() # multiply all of column j by all of row i and sum it
-  return c

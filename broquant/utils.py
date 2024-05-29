@@ -1,6 +1,8 @@
 import torch.nn.functional as F
 import torch
 import torch.nn as nn
+import functools
+from typing import Callable
 
 def train(args, model, device, train_loader, optimizer, epoch)->None:
     model.train()
@@ -39,3 +41,16 @@ def test(model: nn.Module, test_loader, device: torch.device | str ='cpu')->tupl
         accuracy))
 
     return (test_loss, accuracy)
+
+class Implements:
+  """Register a torch function override for Tensor"""
+
+  def __init__(self, HANDLED_FUNCTIONS: dict):
+    self.HANDLED_FUNCTIONS = HANDLED_FUNCTIONS
+
+  def __call__(self, torch_function: Callable):
+    def decorator(func):
+        functools.update_wrapper(func, torch_function)
+        self.HANDLED_FUNCTIONS[torch_function] = func
+        return func
+    return decorator
