@@ -226,6 +226,14 @@ def q_matmul(input: torch.Tensor, other: torch.Tensor)->torch.Tensor:
 
 implements(torch.nn.functional.conv2d)(q_conv2d)
 
+@implements(torch.nn.functional.unfold)
+def q_unfold(input: QTensor, *args, **kwargs):
+  return input.clone(new_tensor=torch.nn.functional.unfold(torch.Tensor(input).float(), *args, **kwargs).to(input.dtype)) # unfold doesn't support int
+
+@implements(torch.nn.functional.fold)
+def q_fold(input: QTensor, *args, **kwargs):
+  return input.clone(new_tensor=torch.nn.functional.fold(torch.Tensor(input).float(), *args, **kwargs).to(input.dtype)) # fold doesn't support int
+
 def calc_mm_atol(a: QTensor, b: QTensor)->torch.Tensor:
   """
     Calculates absolute tolerances of the corresponding element of a matrix multiplication result and returns a matrix with the tolerances.

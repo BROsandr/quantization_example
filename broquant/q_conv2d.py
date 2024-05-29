@@ -14,7 +14,7 @@ def q_conv2d(input, weight, bias=None, stride=1, padding=0):
   if isinstance(padding, int): padding = (padding, padding)
   dilation = [1, 1]
 
-  inp_unf = input.clone(new_tensor=torch.nn.functional.unfold(input=torch.Tensor(input).float(), kernel_size=weight.shape[-2:], padding=padding, stride=stride).to(input.dtype)) # unfold doesn't support int
+  inp_unf = torch.nn.functional.unfold(input=input, kernel_size=weight.shape[-2:], padding=padding, stride=stride)
 
   transpose = lambda tensor: tensor.t() if len(tensor.shape) <= 2 else tensor.transpose(1, 2)
 
@@ -23,6 +23,6 @@ def q_conv2d(input, weight, bias=None, stride=1, padding=0):
   # see h_out, w_out formulas in https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html#torch.nn.Conv2d
   h_out = floor((input.shape[-2] + 2 * padding[0] - dilation[0] * (weight.shape[-2] - 1) - 1) / stride[0] + 1)
   w_out = floor((input.shape[-1] + 2 * padding[1] - dilation[1] * (weight.shape[-1] - 1) - 1) / stride[1] + 1)
-  out = out_unf.clone(new_tensor=torch.nn.functional.fold(input=torch.Tensor(out_unf).float(), output_size=(h_out, w_out), kernel_size=(1, 1)).to(out_unf.dtype)) # fold doesn't support int
+  out = torch.nn.functional.fold(input=out_unf, output_size=(h_out, w_out), kernel_size=(1, 1))
   if bias is not None: out += bias[..., None, None]
   return out
