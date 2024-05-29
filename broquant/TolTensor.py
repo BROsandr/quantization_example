@@ -26,8 +26,8 @@ class TolTensor(torch.Tensor):
   def mm(self, mat2: "TolTensor") -> "TolTensor":
     return calc_mm_atol(self, mat2)
 
-  # def __mul__(self, other: "QTensor") -> "QTensor":
-  #   return q_mul(self, other)
+  # def __mul__(self, other: "TolTensor") -> "TolTensor":
+    #   return torch.mul(self, other)
 
   def __matmul__(self, other):
     return torch.matmul(self, other)
@@ -39,7 +39,6 @@ class TolTensor(torch.Tensor):
     if not all(issubclass(t, TolTensor) for t in types):
       return NotImplemented
     if func not in _HANDLED_FUNCTIONS:
-      tensors = [tensor for tensor in args if isinstance(tensor, TolTensor)]
       res = super().__torch_function__(func, types, args, kwargs)
       if isinstance(res, TolTensor):
         arg = args[0][0] if isinstance(args[0], list) else args[0] # args[0] is list of QTensor for the func stack()
