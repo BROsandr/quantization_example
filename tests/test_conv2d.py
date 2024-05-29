@@ -292,6 +292,43 @@ class TestMyMMQuant(unittest.TestCase):
     cmp_res = torch.allclose(other=expected, input=actual.dequantize(),atol=actual.scale/2, rtol=0.1)
     self.assertTrue(cmp_res)
 
+  def test_const2(self):
+    a = torch.tensor([
+        [ 6.,  7.,  8., 10., 11., 12., 10., 11., 12., 14., 15., 16.,  6.,  7.,
+          8., 10., 11., 12., 10., 11., 12., 14., 15., 16.]
+    ])
+    b = torch.tensor(
+       [[ 0.],
+        [-1.],
+        [ 0.],
+        [-1.],
+        [ 5.],
+        [-1.],
+        [ 0.],
+        [-1.],
+        [ 0.],
+        [ 0.],
+        [-1.],
+        [ 0.],
+        [ 0.],
+        [-1.],
+        [ 0.],
+        [-1.],
+        [ 5.],
+        [-1.],
+        [ 0.],
+        [-1.],
+        [ 0.],
+        [ 0.],
+        [-1.],
+        [ 0.]]
+    )
+    with torch.no_grad():
+      expected = torch.mm(a, b)
+      actual = QTensor.quantize(a).mm(QTensor.quantize(b))
+    cmp_res = torch.allclose(other=expected, input=actual.dequantize(),atol=actual.scale/2, rtol=0.1)
+    self.assertTrue(cmp_res)
+
   def test_random(self):
     h1_dim = random.randint(2, 2)
     w1_dim = random.randint(2, 2)
