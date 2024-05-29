@@ -1,7 +1,8 @@
 import torch
 import logging
-from broquant.QTensor import implements, QTensor
+from broquant.QTensor import implements, QTensor, q_matmul
 from broquant.utils import Implements
+from broquant.q_conv2d import q_conv2d
 
 logger = logging
 
@@ -129,3 +130,14 @@ def tol_tensor_sum(input, dtype=None):
   res = torch.Tensor(input).sum(dtype=dtype)
   res_atol = input.numel() * input.atol
   return TolTensor(tensor=res, atol=res_atol)
+
+@implements(torch.stack)
+def tol_tensor_stack(tensors, *args, **kwargs):
+  assert(all(isinstance(tensor, TolTensor) for tensor in tensors))
+  tensor_seq = [torch.Tensor(tensor) for tensor in tensors]
+  res = torch.stack(tensor_seq, *args, **kwargs)
+  res_atol = max(tensor.atol for tensor in tensors)
+  return TolTensor(tensor=res, atol=res_atol)
+
+implements(torch.nn.functional.conv2d)(q_conv2d)
+implements(torch.matmul)(q_matmul)

@@ -30,6 +30,12 @@ def calc_max_mm_atol(a: QTensor, b: QTensor)->float:
   b_tol_tensor = TolTensor.from_QTensor(b)
   return a_tol_tensor.mm(b_tol_tensor).atol
 
+def calc_max_conv2d_atol(input: QTensor, weight: QTensor, bias=None)->float:
+  input_tol_tensor = TolTensor.from_QTensor(input)
+  weight_tol_tensor = TolTensor.from_QTensor(weight)
+  bias_tol_tensor = TolTensor.from_QTensor(bias) if not (bias is None) else None
+  return torch.conv2d(input=input_tol_tensor, weight=weight_tol_tensor, bias=bias_tol_tensor).atol
+
 class Conv2dRandomizer:
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -440,7 +446,7 @@ class TestConst(unittest.TestCase):
       q_weight = QTensor.quantize(self.weight)
       actual = F.conv2d(q_input, q_weight).dequantize()
 
-    self.assertTrue(torch.allclose(input=actual, other=expected, rtol=0.1, atol=0.1))
+    self.assertTrue(torch.allclose(input=actual, other=expected, atol=calc_max_conv2d_atol(input=q_input, weight=q_weight)))
 
   def test_bias(self):
     with torch.no_grad():
@@ -450,7 +456,7 @@ class TestConst(unittest.TestCase):
       q_bias = QTensor.quantize(self.bias, scale=(q_input.scale*q_weight.scale), zero_point=0, dtype=torch.int32)
       actual = F.conv2d(q_input, q_weight, bias=q_bias).dequantize()
 
-    self.assertTrue(torch.allclose(input=actual, other=expected, rtol=0.1, atol=0.1))
+    self.assertTrue(torch.allclose(input=actual, other=expected, atol=calc_max_conv2d_atol(input=q_input, weight=q_weight, bias=q_bias)))
 
 class TestRandom(unittest.TestCase):
   def setUp(self):
@@ -476,7 +482,7 @@ class TestRandom(unittest.TestCase):
       q_weight = QTensor.quantize(weight)
       q_bias = QTensor.quantize(bias, scale=(q_input.scale*q_weight.scale), zero_point=0, dtype=torch.int32)
       actual: torch.Tensor=self.call(input=q_input, weight=q_weight, bias=q_bias).dequantize()
-    self.assertTrue(torch.allclose(input=actual, other=expected, rtol=0.1, atol=0.1))
+    self.assertTrue(torch.allclose(input=actual, other=expected, atol=calc_max_conv2d_atol(input=q_input, weight=q_weight, bias=q_bias)))
 
   def test_run(self):
     for i in range(self.ITER_NUM):
