@@ -27,12 +27,18 @@ class QTensor(torch.Tensor):
     return QTensor(tensor=new_tensor, scale=self.scale, zero_point=self.zero_point)
 
   def mm(self, mat2: "QTensor") -> "QTensor":
-    return q_mm(self, mat2)
+    return torch.mm(self, mat2)
 
   def __mul__(self, other: "QTensor") -> "QTensor":
     return torch.mul(self, other)
 
+  def mul(self, other: "QTensor") -> "QTensor":
+    return torch.mul(self, other)
+
   def __matmul__(self, other):
+    return torch.matmul(self, other)
+
+  def matmul(self, other):
     return torch.matmul(self, other)
 
   @classmethod
@@ -154,6 +160,7 @@ def q_mul(input: QTensor, other: QTensor):
 
   return QTensor(tensor=result_tensor, scale=result_scale, zero_point=0)
 
+@implements(torch.mm)
 def q_mm(input: QTensor, mat2: QTensor)->QTensor:
 
   # see hints regarding the algorithm at https://github.com/google/gemmlowp/blob/master/doc/quantization.md

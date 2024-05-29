@@ -24,15 +24,30 @@ class TolTensor(torch.Tensor):
     return TolTensor(tensor=new_tensor, atol=self.atol)
 
   def mm(self, mat2: "TolTensor") -> "TolTensor":
-    return calc_mm_atol(self, mat2)
+    return torch.mm(self, mat2)
 
   def __mul__(self, other: "TolTensor") -> "TolTensor":
+    return torch.mul(self, other)
+
+  def mul(self, other: "TolTensor") -> "TolTensor":
     return torch.mul(self, other)
 
   def __add__(self, other):
     return torch.add(self, other)
 
+  def add(self, other):
+    return torch.add(self, other)
+
+  def __sub__(self, other):
+    return torch.add(self, -other)
+
+  def sub(self, other):
+    return torch.add(self, -other)
+
   def __matmul__(self, other):
+    return torch.matmul(self, other)
+
+  def matmul(self, other):
     return torch.matmul(self, other)
 
   def sum(self, dtype=None):
@@ -57,6 +72,7 @@ class TolTensor(torch.Tensor):
     assert(isinstance(x, QTensor))
     return TolTensor(tensor=x.dequantize(), atol=x.scale/2)
 
+@implements(torch.mm)
 def calc_mm_atol(a, b)->TolTensor:
   """
     Calculates absolute tolerances of the corresponding element of a matrix multiplication result and returns a matrix with the tolerances.
