@@ -84,18 +84,10 @@ def calc_mm_atol(a, b)->TolTensor:
   ar,ac = a.shape
   br,bc = b.shape
   assert ac==br
-
-  a_float = a
-  b_float = b
-
-  a_quant_tol = a.atol
-  b_quant_tol = b.atol
-
   c = torch.zeros(ar, bc)
   for i in range(ar):
       for j in range(bc):
-          mult_tol = a_float[i,:] * b_float[:,j]
-          c[i,j] = (mult_tol).sum() # multiply all of column j by all of row i and sum it
+          c[i,j] = (a[i,:] * b[:,j]).sum() # multiply all of column j by all of row i and sum it
   return c
 
 @implements(torch.mul)
