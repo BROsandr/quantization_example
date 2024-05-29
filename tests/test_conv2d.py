@@ -1,13 +1,12 @@
 import unittest
 import sys
 if __name__ == '__main__': sys.path.append('.')
-from broquant.q_conv2d import q_conv2d
 import torch
 from torch.nn import functional as F
 import torch.nn as nn
 import random
 import os
-from broquant.QTensor import dequantize_tensor, quantize_tensor, QTensor
+from broquant.QTensor import dequantize_tensor, quantize_tensor, QTensor, calc_mm_atol
 from typing import Iterable, Any
 
 import logging
@@ -24,6 +23,9 @@ def set_default_seed():
   logger.debug(f'SEED:{_SEED}')
 
 set_default_seed()
+
+def calc_max_mm_atol(a: QTensor, b: QTensor)->float:
+  return calc_mm_atol(a, b).max().item()
 
 class Conv2dRandomizer:
   def __init__(self, *args, **kwargs):
@@ -289,7 +291,7 @@ class TestMyMMQuant(unittest.TestCase):
     with torch.no_grad():
       expected = torch.mm(a, b)
       actual = QTensor.quantize(a).mm(QTensor.quantize(b))
-    cmp_res = torch.allclose(other=expected, input=actual.dequantize(),atol=actual.scale/2, rtol=0.1)
+    cmp_res = torch.allclose(other=expected, input=actual.dequantize(),atol=calc_max_mm_atol(QTensor.quantize(a), QTensor.quantize(b)))
     self.assertTrue(cmp_res)
 
   def test_const2(self):
@@ -326,7 +328,7 @@ class TestMyMMQuant(unittest.TestCase):
     with torch.no_grad():
       expected = torch.mm(a, b)
       actual = QTensor.quantize(a).mm(QTensor.quantize(b))
-    cmp_res = torch.allclose(other=expected, input=actual.dequantize(),atol=actual.scale/2, rtol=0.1)
+    cmp_res = torch.allclose(other=expected, input=actual.dequantize(),atol=calc_max_mm_atol(QTensor.quantize(a), QTensor.quantize(b)))
     self.assertTrue(cmp_res)
 
   def test_random(self):
@@ -340,7 +342,7 @@ class TestMyMMQuant(unittest.TestCase):
     with torch.no_grad():
       expected = torch.mm(a.to(torch.int32), b.to(torch.int32))
       actual = quantize_tensor(a).mm(quantize_tensor(b))
-    cmp_res = torch.allclose(other=expected.to(torch.float32), input=dequantize_tensor(actual),atol=actual.scale/2, rtol=0.1)
+      cmp_res = torch.allclose(other=expected.to(torch.float32), input=dequantize_tensor(actual),atol=calc_max_mm_atol(QTensor.quantize(a), QTensor.quantize(b)))
     self.assertTrue(cmp_res)
 
 class TestMatmulQuant(unittest.TestCase):
