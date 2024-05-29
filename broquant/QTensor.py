@@ -50,8 +50,13 @@ class QTensor(torch.Tensor):
       tensors = [tensor for tensor in args if isinstance(tensor, QTensor)]
       def is_same_scale_zp(tensors: Sequence) -> bool:
         return all((tensors[0].scale == tensor.scale) and (tensors[0].zero_point == tensor.zero_point) for tensor in tensors)
-      if (len(tensors) > 1) and (not is_same_scale_zp(tensors)):
-        raise NotImplementedError(f'QTensors have different scale/zp in func:{func}. Provide a specific handler if want to apply the func.')
+      def is_same_dtype(tensors: Sequence) -> bool:
+        return all(tensors[0].dtype is tensor.dtype for tensor in tensors)
+      if (len(tensors) > 1):
+        if not is_same_scale_zp(tensors):
+          raise NotImplementedError(f'QTensors have different scale/zp in func:{func}. Provide a specific handler if want to apply the func.')
+        if not is_same_dtype(tensors):
+          raise ValueError('tensors have different dtypes. You should requantize/cast types.')
       res = super().__torch_function__(func, types, args, kwargs)
       if isinstance(res, QTensor):
         arg = args[0][0] if isinstance(args[0], list) else args[0] # args[0] is list of QTensor for the func stack()

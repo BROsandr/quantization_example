@@ -24,8 +24,5 @@ def q_conv2d(input, weight, bias=None, stride=1, padding=0):
   h_out = floor((input.shape[-2] + 2 * padding[0] - dilation[0] * (weight.shape[-2] - 1) - 1) / stride[0] + 1)
   w_out = floor((input.shape[-1] + 2 * padding[1] - dilation[1] * (weight.shape[-1] - 1) - 1) / stride[1] + 1)
   out = out_unf.clone(new_tensor=torch.nn.functional.fold(input=torch.Tensor(out_unf).float(), output_size=(h_out, w_out), kernel_size=(1, 1)).to(out_unf.dtype)) # fold doesn't support int
-  if bias is not None:
-    if bias.dtype is not torch.int32:
-      raise ValueError('bias is not int32. You should quantize bias with scale=(s_weight*s_input), zp=0 and dtype=int32.')
-    out += bias[..., None, None]
+  if bias is not None: out += bias[..., None, None]
   return out
