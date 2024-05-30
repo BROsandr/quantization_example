@@ -4,6 +4,7 @@ import torch.nn as nn
 import functools
 from typing import Callable, Iterable
 from more_itertools import collapse
+from dataclasses import dataclass
 
 def train(args, model, device, train_loader, optimizer, epoch)->None:
     model.train()
@@ -58,3 +59,22 @@ class Implements:
 
 def collapse_tensors(tensors: Iterable):
   return collapse(tensors, base_type=torch.Tensor)
+
+@dataclass
+class Metrics:
+  abs_error   : float = 0.
+  rel_error   : float = 0.
+  max_expected: float = 0.
+
+  @classmethod
+  def eval(cls, expected: torch.Tensor, actual: torch.Tensor):
+    max_expected = expected.max().item()
+    abs_error = abs(expected - actual)
+    rel_error = abs_error / expected.abs()
+    max_abs_error = abs_error.max().item()
+    max_rel_error = rel_error.max().item()
+    return cls(
+        abs_error=max_abs_error,
+        rel_error=max_rel_error,
+        max_expected=max_expected,
+    )
