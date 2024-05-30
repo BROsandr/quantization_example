@@ -11,6 +11,23 @@ _HANDLED_FUNCTIONS = {}
 
 implements = Implements(HANDLED_FUNCTIONS=_HANDLED_FUNCTIONS)
 
+def dtype2min_max(dtype)->tuple[int, int]:
+  def get_min_max(num_bits: int, is_signed: bool)->tuple[int, int]:
+    if is_signed:
+      return -1 << (num_bits - 1), ( 1 << (num_bits - 1)) - 1
+    else:
+      return 0, ( (1 << num_bits) - 1)
+  num_bits_map = {
+    torch.uint8: (8 , False),
+    torch.int8 : (8 , True ),
+    torch.int16: (16, True ),
+    torch.int32: (32, True ),
+  }
+  try:
+    return get_min_max(*num_bits_map[dtype])
+  except KeyError:
+    raise NotImplementedError(f'Unsupported argument dtype:{dtype}. Valid dtypes are: {num_bits_map.keys()}.')
+
 class QTensor(torch.Tensor):
   def __new__(cls, tensor: torch.Tensor, scale: float, zero_point: int = 0, *args, **kwargs):
     return super().__new__(cls, tensor, *args, **kwargs)
@@ -116,23 +133,6 @@ def calcScaleZeroPoint(min_val, max_val, qmin, qmax)->tuple[float, int]:
   return scale, zero_point
 
 def quantize_tensor(x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0)->QTensor:
-
-    def dtype2min_max(dtype)->tuple[int, int]:
-      def get_min_max(num_bits: int, is_signed: bool)->tuple[int, int]:
-        if is_signed:
-          return -1 << (num_bits - 1), ( 1 << (num_bits - 1)) - 1
-        else:
-          return 0, ( (1 << num_bits) - 1)
-      num_bits_map = {
-        torch.uint8: (8 , False),
-        torch.int8 : (8 , True ),
-        torch.int16: (16, True ),
-        torch.int32: (32, True ),
-      }
-      try:
-        return get_min_max(*num_bits_map[dtype])
-      except KeyError:
-        raise NotImplementedError(f'Unsupported argument dtype:{dtype}. Valid dtypes are: {num_bits_map.keys()}.')
 
     qmin, qmax = dtype2min_max(dtype)
 
@@ -250,7 +250,7 @@ def q_unfold(input: QTensor, *args, **kwargs):
   unf_inp = torch.Tensor(input).float() # unfold doesn't support int
   unf_inp -= input.zero_point # unbias because unfould will pad zeros
   unf_out = torch.nn.functional.unfold(unf_inp, *args, **kwargs) + input.zero_point # restore zero_point (bias)
-  return input.clone(new_tensor=(unf_out).to(input.dtype))
+  return input.clone(new_tensor=(unf_out).round().clamp(*dtype2min_max(input.dtype)).to(input.dtype)) # round and clamp are added prematurely
 
 @implements(torch.nn.functional.fold)
 def q_fold(input: QTensor, *args, **kwargs):
