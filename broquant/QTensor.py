@@ -2,6 +2,7 @@ from typing import Sequence, Iterable, Any
 import torch
 import logging
 from broquant.q_conv2d import q_conv2d
+from broquant.q_linear import q_linear
 from broquant.utils import Implements, collapse_tensors
 
 logger = logging
@@ -242,6 +243,7 @@ def q_matmul(input: torch.Tensor, other: torch.Tensor)->torch.Tensor:
   return out
 
 implements(torch.nn.functional.conv2d)(q_conv2d)
+implements(torch.nn.functional.linear)(q_linear)
 
 @implements(torch.nn.functional.unfold)
 def q_unfold(input: QTensor, *args, **kwargs):

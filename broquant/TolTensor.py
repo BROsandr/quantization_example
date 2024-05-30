@@ -3,6 +3,7 @@ import logging
 from broquant.QTensor import implements, QTensor, q_matmul
 from broquant.utils import Implements, collapse_tensors
 from broquant.q_conv2d import q_conv2d
+from broquant.q_linear import q_linear
 
 logger = logging
 
@@ -168,6 +169,7 @@ def tol_tensor_stack(tensors, *args, **kwargs):
   return TolTensor(tensor=res, atol=res_atol)
 
 implements(torch.nn.functional.conv2d)(q_conv2d)
+implements(torch.nn.functional.linear)(q_linear)
 implements(torch.matmul)(q_matmul)
 
 @implements(torch.nn.functional.fold)
