@@ -25,6 +25,15 @@ def set_default_seed():
 
 set_default_seed()
 
+def print_stats(expected: torch.Tensor, actual: torch.Tensor, atol: float):
+  logger.debug(f"atol:{atol}")
+  max_expected = expected.max()
+  abs_error = abs(expected - actual)
+  rel_error = abs_error / expected.abs()
+  logger.debug(f"max expected:{max_expected}")
+  logger.debug(f"max rel error:{rel_error.max()}")
+  logger.debug(f"max abs error:{abs_error.max()}")
+
 class LinearRandomizer:
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -123,7 +132,9 @@ class TestRandom(unittest.TestCase):
       q_weight = QTensor.quantize(weight)
       q_bias = QTensor.quantize(bias, scale=(q_input.scale*q_weight.scale), zero_point=0, dtype=torch.int32)
       actual: torch.Tensor=self.call(input=q_input, weight=q_weight, bias=q_bias).dequantize()
-    self.assertTrue(torch.allclose(input=actual, other=expected, atol=calc_max_linear_atol(input=q_input, weight=q_weight, bias=q_bias, conv2d=self.call)))
+    atol=calc_max_linear_atol(input=q_input, weight=q_weight, bias=q_bias, conv2d=self.call)
+    print_stats(actual=actual, atol=atol, expected=expected)
+    self.assertTrue(torch.allclose(input=actual, other=expected, atol=atol))
 
   def test_run(self):
     for i in range(self.ITER_NUM):
