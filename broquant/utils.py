@@ -2,7 +2,8 @@ import torch.nn.functional as F
 import torch
 import torch.nn as nn
 import functools
-from typing import Callable
+from typing import Callable, Iterable
+from more_itertools import collapse
 
 def train(args, model, device, train_loader, optimizer, epoch)->None:
     model.train()
@@ -54,3 +55,6 @@ class Implements:
         self.HANDLED_FUNCTIONS[torch_function] = func
         return func
     return decorator
+
+def collapse_tensors(tensors: Iterable):
+  return collapse(tensors, base_type=torch.Tensor)
