@@ -2,7 +2,7 @@ from typing import Sequence, Iterable, Any
 import torch
 import logging
 from broquant.q_conv2d import q_conv2d
-from broquant.utils import Implements
+from broquant.utils import Implements, collapse_tensors
 
 logger = logging
 
@@ -62,7 +62,7 @@ class QTensor(torch.Tensor):
     if not all(issubclass(t, QTensor) for t in types):
       return NotImplemented
     if func not in _HANDLED_FUNCTIONS:
-      tensors = [tensor for tensor in args if isinstance(tensor, QTensor)]
+      tensors = [tensor for tensor in collapse_tensors(args) if isinstance(tensor, QTensor)]
       def is_same_scale_zp(tensors: Sequence) -> bool:
         return all((tensors[0].scale == tensor.scale) and (tensors[0].zero_point == tensor.zero_point) for tensor in tensors)
       def is_same_dtype(tensors: Sequence) -> bool:
@@ -74,7 +74,7 @@ class QTensor(torch.Tensor):
           raise ValueError('tensors have different dtypes. You should requantize/cast types.')
       res = super().__torch_function__(func, types, args, kwargs)
       if isinstance(res, QTensor):
-        arg = args[0][0] if isinstance(args[0], list) else args[0] # args[0] is list of QTensor for the func stack()
+        arg = tensors[0] # args[0] is list of QTensor for the func stack()
         res = arg.clone(new_tensor=res)
       return res
     return _HANDLED_FUNCTIONS[func](*args, **kwargs)

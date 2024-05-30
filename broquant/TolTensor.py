@@ -91,7 +91,7 @@ class TolTensor(torch.Tensor):
         raise NotImplementedError(f'Multiple TolTensor arguments are passed in func:{func}. Provide a custom implementation for their atol handling.')
       res = super().__torch_function__(func, types, args, kwargs)
       if isinstance(res, TolTensor):
-        arg = args[0][0] if isinstance(args[0], list) else args[0] # args[0] is list of QTensor for the func stack()
+        arg = tensors[0] # args[0] is list of QTensor for the func stack()
         res = arg.clone(new_tensor=res)
       return res
     return _HANDLED_FUNCTIONS[func](*args, **kwargs)
