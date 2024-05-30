@@ -461,7 +461,7 @@ class TestConst(unittest.TestCase):
 class TestRandom(unittest.TestCase):
   def setUp(self):
     self.randomizer = Conv2dRandomizer()
-    self.ITER_NUM = 1
+    self.ITER_NUM = 100
 
   def call(self, input, weight, bias):
     randomizer = self.randomizer
