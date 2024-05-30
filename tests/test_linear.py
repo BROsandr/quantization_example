@@ -25,6 +25,22 @@ def set_default_seed():
 
 set_default_seed()
 
+class LinearRandomizer:
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.MAX_RAND = 10
+
+  def randomize(self):
+    dim_w = random.randint(1, self.MAX_RAND)
+    dim_h = random.randint(1, self.MAX_RAND)
+    self.in_channels = random.randint(1, self.MAX_RAND)
+    self.out_channels = random.randint(1, self.MAX_RAND)
+    num_batches = random.randint(1,self.MAX_RAND )
+    self.use_bias = bool(random.randint(0, 1))
+    self.weight = torch.nn.Parameter(torch.rand(self.out_channels, dim_w, requires_grad=False))
+    self.bias = torch.nn.Parameter(torch.rand(self.out_channels, requires_grad=False))
+    self.input = torch.rand(num_batches, self.in_channels, dim_h, dim_w, requires_grad=False)
+
 def calc_max_linear_atol(input: QTensor, weight: QTensor, bias=None, conv2d=F.linear)->float:
   input_tol_tensor = TolTensor.from_QTensor(input)
   weight_tol_tensor = TolTensor.from_QTensor(weight)
@@ -84,6 +100,34 @@ class TestConst(unittest.TestCase):
       actual = F.linear(q_input, q_weight, bias=q_bias).dequantize()
 
     self.assertTrue(torch.allclose(input=actual, other=expected, atol=calc_max_linear_atol(input=q_input, weight=q_weight, bias=q_bias)))
+
+class TestRandom(unittest.TestCase):
+  def setUp(self):
+    self.randomizer = LinearRandomizer()
+    self.ITER_NUM = 100
+
+  def call(self, input, weight, bias):
+    randomizer = self.randomizer
+    use_bias = randomizer.use_bias
+    return F.linear(input=input, weight=weight, bias=(bias if use_bias else None))
+
+  def run_iteration(self):
+    randomizer = self.randomizer
+    randomizer.randomize()
+    input = randomizer.input
+    weight = randomizer.weight
+    bias = randomizer.bias
+    with torch.no_grad():
+      expected: torch.Tensor=self.call(input=input, weight=weight, bias=bias)
+      q_input = QTensor.quantize(input)
+      q_weight = QTensor.quantize(weight)
+      q_bias = QTensor.quantize(bias, scale=(q_input.scale*q_weight.scale), zero_point=0, dtype=torch.int32)
+      actual: torch.Tensor=self.call(input=q_input, weight=q_weight, bias=q_bias).dequantize()
+    self.assertTrue(torch.allclose(input=actual, other=expected, atol=calc_max_linear_atol(input=q_input, weight=q_weight, bias=q_bias, conv2d=self.call)))
+
+  def test_run(self):
+    for i in range(self.ITER_NUM):
+      with self.subTest(i=i): self.run_iteration()
 
 if __name__ == '__main__':
   unittest.main()
