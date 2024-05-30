@@ -247,7 +247,10 @@ implements(torch.nn.functional.linear)(q_linear)
 
 @implements(torch.nn.functional.unfold)
 def q_unfold(input: QTensor, *args, **kwargs):
-  return input.clone(new_tensor=torch.nn.functional.unfold(torch.Tensor(input).float(), *args, **kwargs).to(input.dtype)) # unfold doesn't support int
+  unf_inp = torch.Tensor(input).float() # unfold doesn't support int
+  unf_inp -= input.zero_point # unbias because unfould will pad zeros
+  unf_out = torch.nn.functional.unfold(unf_inp, *args, **kwargs) + input.zero_point # restore zero_point (bias)
+  return input.clone(new_tensor=(unf_out).to(input.dtype))
 
 @implements(torch.nn.functional.fold)
 def q_fold(input: QTensor, *args, **kwargs):
