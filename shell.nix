@@ -4,6 +4,7 @@ let
   pyEnv = pkgs.python3.withPackages (ps: with ps; [
     torch
     torchvision
+    more-itertools
   ]);
   shell = pkgs.mkShellNoCC {
     inputsFrom = [ ];
