@@ -97,7 +97,7 @@ class TolTensor(torch.Tensor):
     return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
   @classmethod
-  def from_QTensor(cls, x: QTensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0):
+  def from_QTensor(cls, x: QTensor):
     assert(isinstance(x, QTensor))
     return TolTensor(tensor=x.dequantize(), atol=x.scale/2)
 
