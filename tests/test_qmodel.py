@@ -1,3 +1,5 @@
+import sys
+if __name__ == '__main__': sys.path.append('.')
 from broquant.Model import Model
 import copy
 import torch
