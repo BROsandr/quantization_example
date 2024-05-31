@@ -67,9 +67,7 @@ class QTensor(torch.Tensor):
     if not all(issubclass(t, QTensor) for t in types):
       return NotImplemented
     if func not in _HANDLED_FUNCTIONS:
-      tensors = [tensor for tensor in collapse_tensors(args) if isinstance(tensor, torch.Tensor)]
-      if not all(isinstance(tensor, cls) for tensor in tensors):
-        return NotImplemented
+      tensors = [tensor for tensor in collapse_tensors(args) if isinstance(tensor, QTensor)]
       def is_same_scale_zp(tensors: Sequence) -> bool:
         return all((tensors[0].scale == tensor.scale) and (tensors[0].zero_point == tensor.zero_point) for tensor in tensors)
       def is_same_dtype(tensors: Sequence) -> bool:
