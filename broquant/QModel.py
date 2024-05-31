@@ -73,9 +73,11 @@ def gatherStats(model, test_loader):
 
 def quantize_parameters(model: Model):
   with torch.no_grad():
-    for name, param in model.named_parameters():
-      logger.debug(f'Quantizing param_name:{name}.')
-      param.copy_(QTensor.quantize(param))
+    for module_name, module in model.named_modules():
+      if type(module) in (nn.Conv2d, nn.Linear):
+        for param_name, param in module.named_parameters():
+          logger.debug(f'Quantizing param_name:{param_name} in module {module_name}.')
+          setattr(module, param_name, nn.Parameter(QTensor.quantize(param), requires_grad=False))
 
 class QModel(nn.Module):
   def __init__(self, model: Model, stats):
