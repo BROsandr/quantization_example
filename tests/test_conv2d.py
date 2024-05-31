@@ -8,6 +8,7 @@ import random
 import os
 from broquant.QTensor import dequantize_tensor, quantize_tensor, QTensor
 from broquant.TolTensor import TolTensor
+from broquant.utils import eval_metrics, Metrics, metrics2str
 from typing import Iterable, Any
 
 import logging
@@ -462,6 +463,7 @@ class TestRandom(unittest.TestCase):
   def setUp(self):
     self.randomizer = Conv2dRandomizer()
     self.ITER_NUM = 100
+    self.max_metrics: dict[Metrics, float] = {Metrics.ABS_ERROR: 0, Metrics.REL_ERROR: 0}
 
   def call(self, input, weight, bias):
     randomizer = self.randomizer
@@ -482,7 +484,13 @@ class TestRandom(unittest.TestCase):
       q_weight = QTensor.quantize(weight, torch.int8)
       q_bias = QTensor.quantize(bias, scale=(q_input.scale*q_weight.scale), zero_point=0, dtype=torch.int32)
       actual: torch.Tensor=self.call(input=q_input, weight=q_weight, bias=q_bias).dequantize()
-    self.assertTrue(torch.allclose(input=actual, other=expected, atol=calc_max_conv2d_atol(input=q_input, weight=q_weight, bias=q_bias, conv2d=self.call)))
+    metrics = eval_metrics(actual=actual, expected=expected)
+    metrics[Metrics.ATOL]=calc_max_conv2d_atol(input=q_input, weight=q_weight, bias=q_bias, conv2d=self.call)
+    logger.debug(metrics2str(metrics))
+    self.max_metrics[Metrics.ABS_ERROR] = max(self.max_metrics[Metrics.ABS_ERROR], metrics[Metrics.ABS_ERROR])
+    self.max_metrics[Metrics.REL_ERROR] = max(self.max_metrics[Metrics.REL_ERROR], metrics[Metrics.REL_ERROR])
+    # self.assertGreaterEqual(metrics[Metrics.MAX_EXPECTED], metrics[Metrics.ATOL]) # sanity check
+    self.assertTrue(torch.allclose(input=actual, other=expected, atol=metrics[Metrics.ATOL]))
 
   def test_run(self):
     for i in range(self.ITER_NUM):
