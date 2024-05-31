@@ -1,6 +1,10 @@
 import torch.nn.functional
 
 def q_conv2d(input, weight, bias=None, stride=1, padding=0):
+  """
+    Generic implementation of torch.nn.functional.conv2d. Utilized torch.matmul.
+  """
+
   # TODO:
   # Algorithm:
   # 1. conv2d = unfold - matmul - fold
