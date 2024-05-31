@@ -70,7 +70,7 @@ class Metrics:
   def eval(cls, expected: torch.Tensor, actual: torch.Tensor):
     max_expected = expected.max().item()
     abs_error = abs(expected - actual)
-    rel_error = abs_error / expected.abs()
+    rel_error = abs_error / (expected.abs() + torch.finfo(expected.dtype).tiny)
     max_abs_error = abs_error.max().item()
     max_rel_error = rel_error.max().item()
     return cls(
