@@ -1,6 +1,6 @@
 import torch.nn.functional
 
-def q_conv2d(input, weight, bias=None, stride=1, padding=0):
+def q_conv2d(input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
   """
     Generic implementation of torch.nn.functional.conv2d. Utilized torch.matmul.
   """
@@ -16,7 +16,9 @@ def q_conv2d(input, weight, bias=None, stride=1, padding=0):
 
   if isinstance(stride, int): stride = (stride, stride)
   if isinstance(padding, int): padding = (padding, padding)
-  dilation = [1, 1]
+  if isinstance(dilation, int): dilation = (dilation, dilation)
+
+  if (dilation != (1, 1)) or (groups != 1): raise NotImplementedError
 
   inp_unf = torch.nn.functional.unfold(input=input, kernel_size=weight.shape[-2:], padding=padding, stride=stride)
 
