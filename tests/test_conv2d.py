@@ -12,8 +12,8 @@ from broquant.utils import eval_metrics, Metrics, metrics2str
 from typing import Iterable, Any
 
 import logging
-logger = logging
-logger.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 _SEED = random.randrange(sys.maxsize)
 def set_default_seed():

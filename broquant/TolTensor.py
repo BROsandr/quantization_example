@@ -5,7 +5,7 @@ from broquant.utils import Implements, collapse_tensors
 from broquant.q_conv2d import q_conv2d
 from broquant.q_linear import q_linear
 
-logger = logging
+logger = logging.getLogger(__name__)
 
 _HANDLED_FUNCTIONS = {}
 
