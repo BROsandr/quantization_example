@@ -5,7 +5,8 @@ from torch.nn import functional as F
 import torch.nn as nn
 import random
 import os
-from broquant.utils import Metrics
+if __name__ == '__main__': sys.path.append('.')
+from broquant.utils import Metrics, eval_metrics, metrics2str
 
 if __name__ == '__main__': sys.path.append('.')
 from broquant.QTensor import QTensor
@@ -106,7 +107,7 @@ class TestRandom(unittest.TestCase):
   def setUp(self):
     self.randomizer = LinearRandomizer()
     self.ITER_NUM = 100
-    self.max_metrics = Metrics()
+    self.max_metrics: dict[Metrics, float] = {Metrics.ABS_ERROR: 0, Metrics.REL_ERROR: 0}
 
   def call(self, input, weight, bias):
     randomizer = self.randomizer
@@ -125,18 +126,21 @@ class TestRandom(unittest.TestCase):
       q_weight = QTensor.quantize(weight)
       q_bias = QTensor.quantize(bias, scale=(q_input.scale*q_weight.scale), zero_point=0, dtype=torch.int32)
       actual: torch.Tensor=self.call(input=q_input, weight=q_weight, bias=q_bias).dequantize()
-    atol=calc_max_linear_atol(input=q_input, weight=q_weight, bias=q_bias, conv2d=self.call)
-    metrics = Metrics.eval(actual=actual, expected=expected)
-    logger.debug(f"atol:{atol}")
-    logger.debug(metrics)
-    self.max_metrics.abs_error, self.max_metrics.rel_error = max(self.max_metrics.abs_error, metrics.abs_error), max(self.max_metrics.rel_error, metrics.rel_error)
-    self.assertGreaterEqual(expected.abs().max().item(), atol) # sanity check
-    self.assertTrue(torch.allclose(input=actual, other=expected, atol=atol))
+    metrics = eval_metrics(actual=actual, expected=expected)
+    metrics[Metrics.ATOL]=calc_max_linear_atol(input=q_input, weight=q_weight, bias=q_bias, conv2d=self.call)
+    logger.debug(metrics2str(metrics))
+    self.max_metrics[Metrics.ABS_ERROR] = max(self.max_metrics[Metrics.ABS_ERROR], metrics[Metrics.ABS_ERROR])
+    self.max_metrics[Metrics.REL_ERROR] = max(self.max_metrics[Metrics.REL_ERROR], metrics[Metrics.REL_ERROR])
+    self.assertGreaterEqual(expected.abs().max().item(), metrics[Metrics.ATOL]) # sanity check
+    self.assertTrue(torch.allclose(input=actual, other=expected, atol=metrics[Metrics.ATOL]))
 
   def test_run(self):
     for i in range(self.ITER_NUM):
       with self.subTest(i=i): self.run_iteration()
-    logger.info(f'For all iteration. max abs error:{self.max_metrics.abs_error}, max rel error:{self.max_metrics.rel_error}')
+    logger.info(f'''For all iteration.\n{metrics2str({
+        Metrics.ABS_ERROR: self.max_metrics[Metrics.ABS_ERROR],
+        Metrics.REL_ERROR: self.max_metrics[Metrics.REL_ERROR]
+    })}''')
 
 if __name__ == '__main__':
   unittest.main()

@@ -2,9 +2,10 @@ import torch.nn.functional as F
 import torch
 import torch.nn as nn
 import functools
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Any
+from collections.abc import Mapping
 from more_itertools import collapse
-from dataclasses import dataclass
+from enum import Enum
 
 def train(args, model, device, train_loader, optimizer, epoch)->None:
     model.train()
@@ -60,28 +61,20 @@ class Implements:
 def collapse_tensors(tensors: Iterable):
   return collapse(tensors, base_type=torch.Tensor)
 
-@dataclass
-class Metrics:
-  abs_error   : float = 0.
-  rel_error   : float = 0.
-  max_expected: float = 0.
+class Metrics(Enum):
+  ABS_ERROR    = "absolute error"
+  REL_ERROR    = "relative error"
+  MAX_EXPECTED = "max expected"
+  ATOL         = "absolute tolerance"
 
-  @classmethod
-  def eval(cls, expected: torch.Tensor, actual: torch.Tensor):
-    max_expected = expected.max().item()
-    abs_error = abs(expected - actual)
-    rel_error = abs_error / (expected.abs() + torch.finfo(expected.dtype).tiny)
-    max_abs_error = abs_error.max().item()
-    max_rel_error = rel_error.max().item()
-    return cls(
-        abs_error=max_abs_error,
-        rel_error=max_rel_error,
-        max_expected=max_expected,
-    )
+def eval_metrics(expected: torch.Tensor, actual: torch.Tensor)->dict:
+  metrics = {}
+  metrics[Metrics.MAX_EXPECTED] = expected.max().item()
+  abs_error = abs(expected - actual)
+  rel_error = abs_error / (expected.abs() + torch.finfo(expected.dtype).tiny)
+  metrics[Metrics.ABS_ERROR] = abs_error.max().item()
+  metrics[Metrics.REL_ERROR] = rel_error.max().item()
+  return metrics
 
-  def __str__(self):
-    return "\n".join((
-      f'max_expected: {self.max_expected}',
-      f'rel error   : {self.rel_error}',
-      f'abs error   : {self.abs_error}',
-    ))
+def metrics2str(metrics: Mapping[Metrics, Any]):
+  return "\n".join(f'{metric.value}: {val}' for metric, val in metrics.items())
