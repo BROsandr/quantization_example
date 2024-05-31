@@ -78,3 +78,10 @@ class Metrics:
         rel_error=max_rel_error,
         max_expected=max_expected,
     )
+
+  def __str__(self):
+    return "\n".join((
+      f'max_expected: {self.max_expected}',
+      f'rel error   : {self.rel_error}',
+      f'abs error   : {self.abs_error}',
+    ))

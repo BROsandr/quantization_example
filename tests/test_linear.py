@@ -26,15 +26,6 @@ def set_default_seed():
 
 set_default_seed()
 
-def print_metrics(metrics: Metrics, atol: float)->None:
-  logger.debug(f"atol:{atol}")
-  max_expected = metrics.max_expected
-  max_abs_error = metrics.abs_error
-  max_rel_error = metrics.rel_error
-  logger.debug(f"max expected:{max_expected}")
-  logger.debug(f"max rel error:{max_rel_error}")
-  logger.debug(f"max abs error:{max_abs_error}")
-
 class LinearRandomizer:
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -136,7 +127,8 @@ class TestRandom(unittest.TestCase):
       actual: torch.Tensor=self.call(input=q_input, weight=q_weight, bias=q_bias).dequantize()
     atol=calc_max_linear_atol(input=q_input, weight=q_weight, bias=q_bias, conv2d=self.call)
     metrics = Metrics.eval(actual=actual, expected=expected)
-    print_metrics(metrics=metrics, atol=atol)
+    logger.debug(f"atol:{atol}")
+    logger.debug(metrics)
     self.max_metrics.abs_error, self.max_metrics.rel_error = max(self.max_metrics.abs_error, metrics.abs_error), max(self.max_metrics.rel_error, metrics.rel_error)
     self.assertGreaterEqual(expected.abs().max().item(), atol) # sanity check
     self.assertTrue(torch.allclose(input=actual, other=expected, atol=atol))
