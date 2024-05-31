@@ -13,6 +13,10 @@ from broquant.const import MNIST_MODEL_PATH, MNIST_DATASET_PATH
 
 import unittest
 
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
 class TestCmpLossAcc(unittest.TestCase):
 
   def test(self):

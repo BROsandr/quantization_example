@@ -9,7 +9,7 @@ from broquant.Model import Model
 import torch
 
 import logging
-logger = logging.Logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Get Min and max of x tensor, and stores it
 def updateStats(x, stats, key):
