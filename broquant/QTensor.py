@@ -1,4 +1,4 @@
-from typing import Sequence, Iterable, Any
+from typing import Callable, Sequence, Iterable, Any
 import torch
 import logging
 from broquant.q_conv2d import q_conv2d
@@ -193,7 +193,15 @@ def q_unfold(input: QTensor, *args, **kwargs):
 def q_fold(input: QTensor, *args, **kwargs):
   return input.clone(new_tensor=torch.nn.functional.fold(torch.Tensor(input).float(), *args, **kwargs).to(input.dtype)) # fold doesn't support int
 
+def relu_warning(relu: Callable):
+  def decorator(input: QTensor, *args, **kwargs):
+    if not ((input.dtype is torch.int32) and (input.zero_point == 0.)):
+      logger.warning('input dtype is not int32 or zp != 0. relu is working in simulated mode.')
+    return relu(input, *args, **kwargs)
+  return decorator
+
 @implements(torch.nn.functional.relu)
+@relu_warning
 def q_linear(input: QTensor, inplace=False):
   x = input if inplace else input.clone()
   x[(torch.Tensor(x).float() - x.zero_point) < 0.] = x.zero_point
