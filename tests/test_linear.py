@@ -43,11 +43,11 @@ class LinearRandomizer:
     self.bias = torch.nn.Parameter(torch.rand(self.out_channels, requires_grad=False))
     self.input = torch.rand(num_batches, self.in_channels, dim_h, dim_w, requires_grad=False)
 
-def calc_max_linear_atol(input: QTensor, weight: QTensor, bias=None, conv2d=F.linear)->float:
+def calc_max_linear_atol(input: QTensor, weight: QTensor, bias=None, func=F.linear)->float:
   input_tol_tensor = TolTensor.from_QTensor(input)
   weight_tol_tensor = TolTensor.from_QTensor(weight)
   bias_tol_tensor = TolTensor.from_QTensor(bias) if not (bias is None) else None
-  return conv2d(input=input_tol_tensor, weight=weight_tol_tensor, bias=bias_tol_tensor).atol
+  return func(input=input_tol_tensor, weight=weight_tol_tensor, bias=bias_tol_tensor).atol
 
 class TestConst(unittest.TestCase):
   def setUp(self):
@@ -127,7 +127,7 @@ class TestRandom(unittest.TestCase):
       q_bias = QTensor.quantize(bias, scale=(q_input.scale*q_weight.scale), zero_point=0, dtype=torch.int32)
       actual: torch.Tensor=self.call(input=q_input, weight=q_weight, bias=q_bias).dequantize()
     metrics = eval_metrics(actual=actual, expected=expected)
-    metrics[Metrics.ATOL]=calc_max_linear_atol(input=q_input, weight=q_weight, bias=q_bias, conv2d=self.call)
+    metrics[Metrics.ATOL]=calc_max_linear_atol(input=q_input, weight=q_weight, bias=q_bias, func=self.call)
     logger.debug(metrics2str(metrics))
     self.max_metrics[Metrics.ABS_ERROR] = max(self.max_metrics[Metrics.ABS_ERROR], metrics[Metrics.ABS_ERROR])
     self.max_metrics[Metrics.REL_ERROR] = max(self.max_metrics[Metrics.REL_ERROR], metrics[Metrics.REL_ERROR])
