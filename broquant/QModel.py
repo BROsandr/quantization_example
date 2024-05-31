@@ -8,47 +8,8 @@ import torch.nn as nn
 from broquant.Model import Model
 import torch
 
-def quantizeLayer(q_x: QTensor, layer, stat)->QTensor:
-  # for both conv and linear layers
-
-  scale_x, zp_x = q_x.scale, q_x.zero_point
-  x: torch.Tensor = q_x.tensor
-
-  # cache old values
-  W = layer.weight.data
-  B = layer.bias.data
-
-  # quantise weights, activations are already quantised
-  w = quantize_tensor(layer.weight.data)
-  b = quantize_tensor(layer.bias.data)
-
-  layer.weight.data = w.tensor.float()
-  layer.bias.data = b.tensor.float()
-
-  # This is Quantisation Artihmetic
-  scale_w = w.scale
-  zp_w = w.zero_point
-  scale_b = b.scale
-  zp_b = b.zero_point
-
-  scale_next, zero_point_next = calcScaleZeroPoint(min_val=stat['min'], max_val=stat['max'])
-
-  # Preparing input by shifting
-  X = x.float() - zp_x
-  layer.weight.data = scale_x * scale_w*(layer.weight.data - zp_w)
-  layer.bias.data = scale_b*(layer.bias.data + zp_b)
-
-  # All int computation
-  x = (layer(X)/ scale_next) + zero_point_next
-
-  # Perform relu too
-  x = F.relu(x)
-
-  # Reset weights for next forward pass
-  layer.weight.data = W
-  layer.bias.data = B
-
-  return QTensor(tensor=x.round().byte(), scale=scale_next, zero_point=zero_point_next)
+import logging
+logger = logging.Logger(__name__)
 
 # Get Min and max of x tensor, and stores it
 def updateStats(x, stats, key):
@@ -110,31 +71,47 @@ def gatherStats(model, test_loader):
       final_stats[key] = { "max" : value["max"] / value["total"], "min" : value["min"] / value["total"] }
     return final_stats
 
+def quantize_parameters(model: Model):
+  with torch.no_grad():
+    for name, param in model.named_parameters():
+      logger.debug(f'Quantizing param_name:{name}.')
+      param.copy_(QTensor.quantize(param))
+
 class QModel(nn.Module):
   def __init__(self, model: Model, stats):
     super().__init__()
 
     self.model = model
     self.stats = stats
+    quantize_parameters(self.model)
 
   def forward(self, x: torch.Tensor):
     stats = self.stats
     model = self.model
 
     # Quantise before inputting into incoming layers
-    q_x = quantize_tensor(x, min_val=stats['conv1']['min'], max_val=stats['conv1']['max'])
+    q_x = QTensor.quantize(x, min_val=stats['conv1']['min'], max_val=stats['conv1']['max'])
 
-    q_x = quantizeLayer(q_x, model.conv1, stats['conv2'])
+    q_x = model.conv1(q_x)
 
-    q_x.tensor = F.max_pool2d(q_x.tensor, 2, 2)
+    def requantize(q_x: QTensor, stats) -> QTensor:
+      return QTensor.quantize(q_x.dequantize(), min_val=stats['min'], max_val=stats['max'])
 
-    q_x = quantizeLayer(q_x, model.conv2, stats['fc1'])
+    q_x = requantize(q_x, stats['conv2'])
 
-    q_x.tensor = F.max_pool2d(q_x.tensor, 2, 2)
+    q_x = F.max_pool2d(q_x, 2, 2)
 
-    q_x.tensor = q_x.tensor.view(-1, 4*4*50)
+    q_x = model.conv2(q_x)
 
-    q_x = quantizeLayer(q_x, model.fc1, stats['fc2'])
+    q_x = requantize(q_x, stats['fc1'])
+
+    q_x = F.max_pool2d(q_x, 2, 2)
+
+    q_x = q_x.view(-1, 4*4*50)
+
+    q_x = model.fc1(q_x)
+
+    q_x = requantize(q_x, stats['fc2'])
 
     # Back to dequant for final layer
     x = dequantize_tensor(q_x)
