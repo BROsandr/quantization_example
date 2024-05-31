@@ -8,7 +8,6 @@ import os
 if __name__ == '__main__': sys.path.append('.')
 from broquant.utils import Metrics, eval_metrics, metrics2str
 
-if __name__ == '__main__': sys.path.append('.')
 from broquant.QTensor import QTensor
 from broquant.TolTensor import TolTensor
 
