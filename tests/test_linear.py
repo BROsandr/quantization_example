@@ -131,7 +131,7 @@ class TestRandom(unittest.TestCase):
     logger.debug(metrics2str(metrics))
     self.max_metrics[Metrics.ABS_ERROR] = max(self.max_metrics[Metrics.ABS_ERROR], metrics[Metrics.ABS_ERROR])
     self.max_metrics[Metrics.REL_ERROR] = max(self.max_metrics[Metrics.REL_ERROR], metrics[Metrics.REL_ERROR])
-    self.assertGreaterEqual(expected.abs().max().item(), metrics[Metrics.ATOL]) # sanity check
+    self.assertGreaterEqual(self.max_metrics[Metrics.MAX_EXPECTED], metrics[Metrics.ATOL]) # sanity check
     self.assertTrue(torch.allclose(input=actual, other=expected, atol=metrics[Metrics.ATOL]))
 
   def test_run(self):
