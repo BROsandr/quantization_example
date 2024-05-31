@@ -192,3 +192,9 @@ def q_unfold(input: QTensor, *args, **kwargs):
 @implements(torch.nn.functional.fold)
 def q_fold(input: QTensor, *args, **kwargs):
   return input.clone(new_tensor=torch.nn.functional.fold(torch.Tensor(input).float(), *args, **kwargs).to(input.dtype)) # fold doesn't support int
+
+@implements(torch.nn.functional.relu)
+def q_linear(input: QTensor, inplace=False):
+  x = input if inplace else input.clone()
+  x[(torch.Tensor(x).float() - x.zero_point) < 0.] = x.zero_point
+  return x
