@@ -76,8 +76,14 @@ def quantize_parameters(model: Model):
     for module_name, module in model.named_modules():
       if type(module) in (nn.Conv2d, nn.Linear):
         for param_name, param in module.named_parameters():
+          if param_name == 'bias':
+            logger.debug(f'Skipping bias in module {module_name}.')
+            continue
           logger.debug(f'Quantizing param_name:{param_name} in module {module_name}.')
           setattr(module, param_name, nn.Parameter(QTensor.quantize(param), requires_grad=False))
+
+def quantize_bias(q_x: QTensor, module: nn.Module):
+  module.bias = nn.Parameter(QTensor.quantize(module.bias, dtype=torch.int32, scale=(module.weight.scale * q_x.scale), zero_point=0), requires_grad=False)
 
 class QModel(nn.Module):
   def __init__(self, model: Model, stats):
@@ -94,6 +100,8 @@ class QModel(nn.Module):
     # Quantise before inputting into incoming layers
     q_x = QTensor.quantize(x, min_val=stats['conv1']['min'], max_val=stats['conv1']['max'])
 
+    quantize_bias(q_x=q_x, module=model.conv1)
+
     q_x = model.conv1(q_x)
 
     def requantize(q_x: QTensor, stats) -> QTensor:
@@ -103,6 +111,8 @@ class QModel(nn.Module):
 
     q_x = F.max_pool2d(q_x, 2, 2)
 
+    quantize_bias(q_x=q_x, module=model.conv2)
+
     q_x = model.conv2(q_x)
 
     q_x = requantize(q_x, stats['fc1'])
@@ -111,6 +121,7 @@ class QModel(nn.Module):
 
     q_x = q_x.view(-1, 4*4*50)
 
+    quantize_bias(q_x=q_x, module=model.fc1)
     q_x = model.fc1(q_x)
 
     q_x = requantize(q_x, stats['fc2'])
