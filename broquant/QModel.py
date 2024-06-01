@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from broquant.QTensor import quantize_tensor
 from broquant.QTensor import calcScaleZeroPoint
 from broquant.QTensor import dequantize_tensor
-from broquant.QTensor import QTensor
+from broquant.QTensor import QTensor, dtype2min_max
 import torch.nn as nn
 from broquant.Model import Model
 import torch
@@ -71,7 +71,14 @@ def gatherStats(model, test_loader):
       final_stats[key] = { "max" : value["max"] / value["total"], "min" : value["min"] / value["total"] }
     return final_stats
 
-def quantize_parameters(model: Model):
+def quantize_bias(module: nn.Module, min_val, max_val):
+  logger.debug('In quantize_bias(...).')
+  dtype = torch.uint8
+  qmin, qmax = dtype2min_max(dtype)
+  act_scale, act_zp = calcScaleZeroPoint(min_val=min_val, max_val=max_val, qmin=qmin, qmax=qmax)
+  module.bias = nn.Parameter(QTensor.quantize(module.bias, dtype=torch.int32, scale=(module.weight.scale * act_scale), zero_point=0), requires_grad=False)
+
+def quantize_parameters(model: Model, stats):
   with torch.no_grad():
     for module_name, module in model.named_modules():
       if type(module) in (nn.Conv2d, nn.Linear):
@@ -79,14 +86,11 @@ def quantize_parameters(model: Model):
           logger.debug(f'Skipping quantization of module:{module_name}.')
           continue
         for param_name, param in module.named_parameters():
-          if param_name == 'bias':
-            logger.debug(f'Skipping bias in module {module_name}.')
-            continue
           logger.debug(f'Quantizing param_name:{param_name} in module {module_name}.')
-          setattr(module, param_name, nn.Parameter(QTensor.quantize(param), requires_grad=False))
-
-def quantize_bias(q_x: QTensor, module: nn.Module):
-  module.bias = nn.Parameter(QTensor.quantize(module.bias, dtype=torch.int32, scale=(module.weight.scale * q_x.scale), zero_point=0), requires_grad=False)
+          if param_name == 'bias':
+            quantize_bias(module=module, min_val=stats[module_name]['min'].item(), max_val=stats[module_name]['max'].item())
+          else:
+            setattr(module, param_name, nn.Parameter(QTensor.quantize(param), requires_grad=False))
 
 class QModel(nn.Module):
   def __init__(self, model: Model, stats):
@@ -94,7 +98,7 @@ class QModel(nn.Module):
 
     self.model = model
     self.stats = stats
-    quantize_parameters(self.model)
+    quantize_parameters(model=self.model, stats=stats)
 
   def forward(self, x: torch.Tensor):
     stats = self.stats
@@ -102,8 +106,6 @@ class QModel(nn.Module):
 
     # Quantise before inputting into incoming layers
     q_x = QTensor.quantize(x, min_val=stats['conv1']['min'], max_val=stats['conv1']['max'])
-
-    quantize_bias(q_x=q_x, module=model.conv1)
 
     q_x = model.conv1(q_x)
 
@@ -114,8 +116,6 @@ class QModel(nn.Module):
 
     q_x = F.max_pool2d(q_x, 2, 2)
 
-    quantize_bias(q_x=q_x, module=model.conv2)
-
     q_x = model.conv2(q_x)
 
     q_x = requantize(q_x, stats['fc1'])
@@ -124,7 +124,6 @@ class QModel(nn.Module):
 
     q_x = q_x.view(-1, 4*4*50)
 
-    quantize_bias(q_x=q_x, module=model.fc1)
     q_x = model.fc1(q_x)
 
     q_x = requantize(q_x, stats['fc2'])
