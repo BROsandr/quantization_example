@@ -75,6 +75,9 @@ def quantize_parameters(model: Model):
   with torch.no_grad():
     for module_name, module in model.named_modules():
       if type(module) in (nn.Conv2d, nn.Linear):
+        if module_name == 'fc2':
+          logger.debug(f'Skipping quantization of module:{module_name}.')
+          continue
         for param_name, param in module.named_parameters():
           if param_name == 'bias':
             logger.debug(f'Skipping bias in module {module_name}.')
