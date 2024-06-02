@@ -7,10 +7,25 @@ import torch
 from torchvision import datasets, transforms
 import torch.utils.data
 from broquant.QModel import gatherStats, QModel
+import cProfile
+from pathlib import Path
+import random
+import os
 
 import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
+
+_SEED = random.randrange(sys.maxsize)
+def set_default_seed():
+  global _SEED
+  seed = os.environ.get('TEST_SEED', _SEED)
+  _SEED = int(seed)
+  random.seed(_SEED)
+  torch.manual_seed(_SEED)
+  logger.debug(f'SEED:{_SEED}')
+
+set_default_seed()
 
 dataset_path = MNIST_DATASET_PATH
 model = Model.create(load_model=True, model_path=MNIST_MODEL_PATH, dataset_path=dataset_path)
@@ -29,6 +44,7 @@ data, _ = next(iter(test_loader))
 
 logger.debug(f'stats: {stats}')
 
-output = q_model(data)
+stats_path = Path('./stats')
+stats_path.mkdir(exist_ok=True)
 
-logger.debug(f'output: {output}')
+cProfile.run('q_model(data)', str(stats_path / f'q_model_{_SEED}'))
