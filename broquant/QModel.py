@@ -3,52 +3,13 @@ import torch.nn.functional as F
 from broquant.QTensor import quantize_tensor
 from broquant.QTensor import calcScaleZeroPoint
 from broquant.QTensor import dequantize_tensor
-from broquant.QTensor import QTensor
+from broquant.QTensor import QTensor, dtype2min_max
 import torch.nn as nn
 from broquant.Model import Model
 import torch
 
-def quantizeLayer(q_x: QTensor, layer, stat)->QTensor:
-  # for both conv and linear layers
-
-  scale_x, zp_x = q_x.scale, q_x.zero_point
-  x: torch.Tensor = q_x.tensor
-
-  # cache old values
-  W = layer.weight.data
-  B = layer.bias.data
-
-  # quantise weights, activations are already quantised
-  w = quantize_tensor(layer.weight.data)
-  b = quantize_tensor(layer.bias.data)
-
-  layer.weight.data = w.tensor.float()
-  layer.bias.data = b.tensor.float()
-
-  # This is Quantisation Artihmetic
-  scale_w = w.scale
-  zp_w = w.zero_point
-  scale_b = b.scale
-  zp_b = b.zero_point
-
-  scale_next, zero_point_next = calcScaleZeroPoint(min_val=stat['min'], max_val=stat['max'])
-
-  # Preparing input by shifting
-  X = x.float() - zp_x
-  layer.weight.data = scale_x * scale_w*(layer.weight.data - zp_w)
-  layer.bias.data = scale_b*(layer.bias.data + zp_b)
-
-  # All int computation
-  x = (layer(X)/ scale_next) + zero_point_next
-
-  # Perform relu too
-  x = F.relu(x)
-
-  # Reset weights for next forward pass
-  layer.weight.data = W
-  layer.bias.data = B
-
-  return QTensor(tensor=x.round().byte(), scale=scale_next, zero_point=zero_point_next)
+import logging
+logger = logging.getLogger(__name__)
 
 # Get Min and max of x tensor, and stores it
 def updateStats(x, stats, key):
@@ -110,31 +71,62 @@ def gatherStats(model, test_loader):
       final_stats[key] = { "max" : value["max"] / value["total"], "min" : value["min"] / value["total"] }
     return final_stats
 
+def quantize_bias(module: nn.Module, min_val, max_val):
+  logger.debug('In quantize_bias(...).')
+  dtype = torch.uint8
+  qmin, qmax = dtype2min_max(dtype)
+  act_scale, act_zp = calcScaleZeroPoint(min_val=min_val, max_val=max_val, qmin=qmin, qmax=qmax)
+  module.bias = nn.Parameter(QTensor.quantize(module.bias, dtype=torch.int32, scale=(module.weight.scale * act_scale), zero_point=0), requires_grad=False)
+
+def quantize_parameters(model: Model, stats):
+  with torch.no_grad():
+    for module_name, module in model.named_modules():
+      if type(module) in (nn.Conv2d, nn.Linear):
+        if module_name == 'fc2':
+          logger.debug(f'Skipping quantization of module:{module_name}.')
+          continue
+        for param_name, param in module.named_parameters():
+          logger.debug(f'Quantizing param_name:{param_name} in module {module_name}.')
+          if param_name == 'bias':
+            quantize_bias(module=module, min_val=stats[module_name]['min'].item(), max_val=stats[module_name]['max'].item())
+          else:
+            setattr(module, param_name, nn.Parameter(QTensor.quantize(param), requires_grad=False))
+
 class QModel(nn.Module):
   def __init__(self, model: Model, stats):
     super().__init__()
 
     self.model = model
     self.stats = stats
+    quantize_parameters(model=self.model, stats=stats)
 
   def forward(self, x: torch.Tensor):
     stats = self.stats
     model = self.model
 
     # Quantise before inputting into incoming layers
-    q_x = quantize_tensor(x, min_val=stats['conv1']['min'], max_val=stats['conv1']['max'])
+    q_x = QTensor.quantize(x, min_val=stats['conv1']['min'], max_val=stats['conv1']['max'])
 
-    q_x = quantizeLayer(q_x, model.conv1, stats['conv2'])
+    q_x = model.conv1(q_x)
 
-    q_x.tensor = F.max_pool2d(q_x.tensor, 2, 2)
+    def requantize(q_x: QTensor, stats) -> QTensor:
+      return QTensor.quantize(q_x.dequantize(), min_val=stats['min'], max_val=stats['max'])
 
-    q_x = quantizeLayer(q_x, model.conv2, stats['fc1'])
+    q_x = requantize(q_x, stats['conv2'])
 
-    q_x.tensor = F.max_pool2d(q_x.tensor, 2, 2)
+    q_x = F.max_pool2d(q_x, 2, 2)
 
-    q_x.tensor = q_x.tensor.view(-1, 4*4*50)
+    q_x = model.conv2(q_x)
 
-    q_x = quantizeLayer(q_x, model.fc1, stats['fc2'])
+    q_x = requantize(q_x, stats['fc1'])
+
+    q_x = F.max_pool2d(q_x, 2, 2)
+
+    q_x = q_x.view(-1, 4*4*50)
+
+    q_x = model.fc1(q_x)
+
+    q_x = requantize(q_x, stats['fc2'])
 
     # Back to dequant for final layer
     x = dequantize_tensor(q_x)

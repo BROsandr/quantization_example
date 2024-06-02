@@ -1,3 +1,5 @@
+import sys
+if __name__ == '__main__': sys.path.append('.')
 from broquant.Model import Model
 import copy
 import torch
@@ -10,6 +12,10 @@ from pathlib import Path
 from broquant.const import MNIST_MODEL_PATH, MNIST_DATASET_PATH
 
 import unittest
+
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 class TestCmpLossAcc(unittest.TestCase):
 

@@ -6,8 +6,8 @@ from broquant.QTensor import dequantize_tensor, quantize_tensor
 import random
 
 import logging
-logger = logging
-logger.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 class TestQuantize(unittest.TestCase):
   def test_quantize_2x2(self):

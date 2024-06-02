@@ -12,8 +12,8 @@ from broquant.QTensor import QTensor
 from broquant.TolTensor import TolTensor
 
 import logging
-logger = logging
-logger.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 _SEED = random.randrange(sys.maxsize)
 def set_default_seed():

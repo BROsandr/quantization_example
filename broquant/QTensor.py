@@ -6,7 +6,7 @@ from broquant.q_linear import q_linear
 from broquant.q_matmul import q_matmul
 from broquant.utils import Implements, collapse_tensors
 
-logger = logging
+logger = logging.getLogger(__name__)
 
 _HANDLED_FUNCTIONS = {}
 
