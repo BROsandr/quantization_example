@@ -355,6 +355,19 @@ class TestMyMMQuant(unittest.TestCase):
       cmp_res = torch.allclose(other=expected.to(torch.float32), input=dequantize_tensor(actual),atol=calc_max_mm_atol(QTensor.quantize(a), QTensor.quantize(b)))
     self.assertTrue(cmp_res)
 
+  def test_random_float(self):
+    h1_dim = random.randint(30, 30)
+    w1_dim = random.randint(30, 30)
+    w2_dim = random.randint(30, 30)
+    a = torch.rand(h1_dim, w1_dim, requires_grad=False)
+    b = torch.rand(w1_dim, w2_dim, requires_grad=False)
+    logger.debug(f"a.shape:{a.shape}, b.shape:{b.shape}")
+    with torch.no_grad():
+      expected = torch.mm(a, b)
+      actual = quantize_tensor(a).mm(quantize_tensor(b))
+      cmp_res = torch.allclose(other=expected, input=dequantize_tensor(actual),atol=calc_max_mm_atol(QTensor.quantize(a), QTensor.quantize(b)))
+    self.assertTrue(cmp_res)
+
 class TestMatmulQuant(unittest.TestCase):
   def test_2x2(self):
     a = torch.tensor([[1, 2], [3, 4]], dtype=torch.uint8, requires_grad=False)
