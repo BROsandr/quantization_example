@@ -10,7 +10,7 @@ import torch.utils.data
 from broquant.QModel import gatherStats, QModel
 from pathlib import Path
 from broquant.const import MNIST_MODEL_PATH, MNIST_DATASET_PATH
-from broquant.utils import wrap_itern
+from broquant.utils import Itern
 
 import unittest
 
@@ -30,7 +30,7 @@ class TestCmpLossAcc(unittest.TestCase):
                           transforms.ToTensor(),
                           transforms.Normalize((0.1307,), (0.3081,))
                       ])),
-      batch_size=64, shuffle=True, **kwargs)
+      batch_size=1, shuffle=True, **kwargs)
 
     print('Model:')
     model_metrics = test(model, test_loader)
@@ -45,9 +45,7 @@ class TestCmpLossAcc(unittest.TestCase):
 
     print('QModel:')
 
-    wrap_itern(test_loader, 1)
-
-    q_model_metrics = test(q_model, test_loader)
+    q_model_metrics = test(q_model, Itern(iterator=iter(test_loader), n=1))
 
     self.assertEqual(model_metrics, q_model_metrics)
 
