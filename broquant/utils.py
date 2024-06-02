@@ -2,7 +2,7 @@ import torch.nn.functional as F
 import torch
 import torch.nn as nn
 import functools
-from typing import Callable, Iterable, Any
+from typing import Callable, Iterable, Any, Iterator
 from collections.abc import Mapping
 from more_itertools import collapse
 from enum import Enum
@@ -22,6 +22,31 @@ def train(args, model, device, train_loader, optimizer, epoch)->None:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.item()))
+
+class Itern:
+  def __init__(self, iterator: Iterator, n: int):
+    if n < 0: raise ValueError(f'n:{n} must be positive')
+
+    self.__iterator = iterator
+    self.count = 0
+    self.n = n
+
+  def __iter__(self):
+    return self
+
+  def __next__(self):
+    if self.count >= self.n:
+      raise StopIteration
+    res = next(self.__iterator)
+    self.count += 1
+    return res
+
+def wrap_itern(wrapped: Iterable, n: int):
+  iter_func = wrapped.__iter__
+  def new_iter_func(*args, **kwargs):
+    iterator = iter_func(*args, **kwargs)
+    return iter(Itern(iterator=iterator, n=n))
+  wrapped.__iter__ = new_iter_func
 
 def test(model: nn.Module, test_loader, device: torch.device | str ='cpu')->tuple[float, float]:
     model.eval()

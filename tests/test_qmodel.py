@@ -10,6 +10,7 @@ import torch.utils.data
 from broquant.QModel import gatherStats, QModel
 from pathlib import Path
 from broquant.const import MNIST_MODEL_PATH, MNIST_DATASET_PATH
+from broquant.utils import wrap_itern
 
 import unittest
 
@@ -43,6 +44,8 @@ class TestCmpLossAcc(unittest.TestCase):
     print(stats)
 
     print('QModel:')
+
+    wrap_itern(test_loader, 1)
 
     q_model_metrics = test(q_model, test_loader)
 
