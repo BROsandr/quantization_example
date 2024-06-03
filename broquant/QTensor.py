@@ -67,19 +67,20 @@ class QTensor(torch.Tensor):
     if not all(issubclass(t, QTensor) for t in types):
       return NotImplemented
     if func not in _HANDLED_FUNCTIONS:
-      tensors = [tensor for tensor in collapse_tensors(args) if isinstance(tensor, QTensor)]
-      def is_same_scale_zp(tensors: Sequence) -> bool:
-        return all((tensors[0].scale == tensor.scale) and (tensors[0].zero_point == tensor.zero_point) for tensor in tensors)
-      def is_same_dtype(tensors: Sequence) -> bool:
-        return all(tensors[0].dtype is tensor.dtype for tensor in tensors)
-      if (len(tensors) > 1):
-        if not is_same_scale_zp(tensors):
-          raise NotImplementedError(f'QTensors have different scale/zp in func:{func}. Provide a specific handler if want to apply the func.')
-        if not is_same_dtype(tensors):
-          raise ValueError('tensors have different dtypes. You should requantize/cast types.')
+      if __debug__:
+        tensors = [tensor for tensor in collapse_tensors(args) if isinstance(tensor, QTensor)]
+        def is_same_scale_zp(tensors: Sequence) -> bool:
+          return all((tensors[0].scale == tensor.scale) and (tensors[0].zero_point == tensor.zero_point) for tensor in tensors)
+        def is_same_dtype(tensors: Sequence) -> bool:
+          return all(tensors[0].dtype is tensor.dtype for tensor in tensors)
+        if (len(tensors) > 1):
+          if not is_same_scale_zp(tensors):
+            raise NotImplementedError(f'QTensors have different scale/zp in func:{func}. Provide a specific handler if want to apply the func.')
+          if not is_same_dtype(tensors):
+            raise ValueError('tensors have different dtypes. You should requantize/cast types.')
       res = super().__torch_function__(func, types, args, kwargs)
       if isinstance(res, QTensor):
-        arg = tensors[0] # args[0] is list of QTensor for the func stack()
+        arg = args[0][0] if type(args[0]) == list else args[0] # args[0] is list of QTensor for the func stack()
         res = arg.clone(new_tensor=res)
       return res
     return _HANDLED_FUNCTIONS[func](*args, **kwargs)
