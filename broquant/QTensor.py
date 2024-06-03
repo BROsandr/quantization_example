@@ -174,9 +174,10 @@ def q_mm(input: QTensor, mat2: QTensor)->QTensor:
   br,bc = mat2.shape
   assert ac==br
   c = QTensor(tensor=torch.zeros(ar, bc, dtype=torch.int32), scale=input.scale * mat2.scale, zero_point=0)
+  c_dtype=c.dtype
   for i in range(ar):
       for j in range(bc):
-          c[i,j] = (input[i,:] * mat2[:,j]).sum(dtype=c.dtype) # multiply all of column j by all of row i and sum it
+          c[i,j] = (input[i,:] * mat2[:,j]).sum(dtype=c_dtype) # multiply all of column j by all of row i and sum it
   return c
 
 implements(torch.matmul)(q_matmul)
