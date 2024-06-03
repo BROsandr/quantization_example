@@ -177,8 +177,7 @@ def q_mm(input: QTensor, mat2: QTensor)->QTensor:
   c = QTensor(tensor=torch.zeros(ar, bc, dtype=torch.int32), scale=input.scale * mat2.scale, zero_point=0)
   c_dtype=c.dtype
   for i in range(ar):
-      for j in range(bc):
-          c[i] = (input[i].unsqueeze(-1) * mat2).sum(dim=0,dtype=c_dtype)
+    c[i] = (input[i].unsqueeze(-1) * mat2).sum(dim=0,dtype=c_dtype)
   return c
 
 implements(torch.matmul)(q_matmul)
