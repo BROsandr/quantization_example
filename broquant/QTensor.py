@@ -22,14 +22,17 @@ class QTensor(torch.Tensor):
   def __init__(self, tensor: torch.Tensor, scale: float, zero_point: int = 0):
     super().__init__()
 
-    assert(self.dtype in (torch.uint8, torch.int8, torch.int16, torch.int32))
+    # assert(self.dtype in (torch.uint8, torch.int8, torch.int16, torch.int32))
     self.scale = scale
     self.zero_point = zero_point
+    self.sim_dtype = torch.uint8
 
   def clone(self, new_tensor=None, *args, **kwargs) -> "QTensor":
     if new_tensor is None:
       new_tensor = super().clone(*args, **kwargs)
-    return QTensor(tensor=new_tensor, scale=self.scale, zero_point=self.zero_point)
+    res = QTensor(tensor=new_tensor, scale=self.scale, zero_point=self.zero_point)
+    res.sim_dtype = self.sim_dtype
+    return res
 
   def mm(self, mat2: "QTensor") -> "QTensor":
     return torch.mm(self, mat2)
@@ -130,9 +133,11 @@ def quantize_tensor(x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=No
       scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), qmin=qmin, qmax=qmax)
     q_x = zero_point + x / scale
     q_x.round_().clamp_(qmin, qmax)
-    q_x = q_x.to(dtype)
+    q_x = q_x.to(torch.float32)
 
-    return QTensor(tensor=q_x, scale=scale, zero_point=zero_point)
+    res = QTensor(tensor=q_x, scale=scale, zero_point=zero_point)
+    res.sim_dtype = dtype
+    return res
 
 def dequantize_tensor(q_x: QTensor)->torch.Tensor:
     return q_x.scale * (torch.Tensor(q_x).float() - q_x.zero_point)
@@ -151,11 +156,11 @@ def q_mul(input: QTensor, other: QTensor):
     if not ((dtype is torch.uint8) or (dtype is torch.int8)):
       raise NotImplemented(f"Unsupported dtype:{dtype}")
 
-  check_dtype(input)
-  check_dtype(other)
+  # check_dtype(input)
+  # check_dtype(other)
 
   def QTensor2Tensor32(tensor: QTensor)->torch.Tensor:
-    return (torch.Tensor(tensor).to(torch.int16) - tensor.zero_point).to(torch.int32)
+    return (torch.Tensor(tensor).to(torch.float32) - tensor.zero_point).to(torch.float32)
 
   result_tensor = QTensor2Tensor32(input) * QTensor2Tensor32(other)
   result_scale = input.scale * other.scale
@@ -172,7 +177,7 @@ def q_mm(input: QTensor, mat2: QTensor)->QTensor:
   ar,ac = input.shape
   br,bc = mat2.shape
   assert ac==br
-  c = QTensor(tensor=torch.zeros(ar, bc, dtype=torch.int32), scale=input.scale * mat2.scale, zero_point=0)
+  c = QTensor(tensor=torch.zeros(ar, bc, dtype=torch.float32), scale=input.scale * mat2.scale, zero_point=0)
   for i in range(ar):
       for j in range(bc):
           c[i,j] = (input[i,:] * mat2[:,j]).sum(dtype=c.dtype) # multiply all of column j by all of row i and sum it
@@ -187,7 +192,7 @@ def q_unfold(input: QTensor, *args, **kwargs):
   unf_inp = torch.Tensor(input).float() # unfold doesn't support int
   unf_inp -= input.zero_point # unbias because unfould will pad zeros
   unf_out = torch.nn.functional.unfold(unf_inp, *args, **kwargs) + input.zero_point # restore zero_point (bias)
-  return input.clone(new_tensor=(unf_out).round().clamp(*dtype2min_max(input.dtype)).to(input.dtype)) # round and clamp are added prematurely
+  return input.clone(new_tensor=(unf_out).round().clamp(*dtype2min_max(input.sim_dtype)).to(input.dtype)) # round and clamp are added prematurely
 
 @implements(torch.nn.functional.fold)
 def q_fold(input: QTensor, *args, **kwargs):
