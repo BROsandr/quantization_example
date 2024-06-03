@@ -30,7 +30,7 @@ class TestCmpLossAcc(unittest.TestCase):
                           transforms.ToTensor(),
                           transforms.Normalize((0.1307,), (0.3081,))
                       ])),
-      batch_size=1, shuffle=True, **kwargs)
+      batch_size=64, shuffle=True, **kwargs)
 
     print('Model:')
     model_metrics = test(model, test_loader)
@@ -45,7 +45,7 @@ class TestCmpLossAcc(unittest.TestCase):
 
     print('QModel:')
 
-    q_model_metrics = test(q_model, Itern(iterator=iter(test_loader), n=1))
+    q_model_metrics = test(q_model, test_loader)
 
     self.assertEqual(model_metrics, q_model_metrics)
 
