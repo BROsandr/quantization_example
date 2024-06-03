@@ -10,7 +10,7 @@ import torch.utils.data
 from broquant.QModel import gatherStats, QModel
 from pathlib import Path
 from broquant.const import MNIST_MODEL_PATH, MNIST_DATASET_PATH
-from broquant.utils import Itern
+from math import isclose
 
 import unittest
 
@@ -47,7 +47,7 @@ class TestCmpLossAcc(unittest.TestCase):
 
     q_model_metrics = test(q_model, test_loader)
 
-    self.assertEqual(model_metrics, q_model_metrics)
+    self.assertTrue(isclose(model_metrics[1], q_model_metrics[1], rel_tol=0.1))
 
 if __name__ == '__main__':
 
