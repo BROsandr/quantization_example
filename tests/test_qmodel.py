@@ -10,6 +10,7 @@ import torch.utils.data
 from broquant.QModel import gatherStats, QModel
 from pathlib import Path
 from broquant.const import MNIST_MODEL_PATH, MNIST_DATASET_PATH
+from broquant.utils import Itern
 
 import unittest
 
