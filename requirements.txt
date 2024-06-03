@@ -1,3 +1,5 @@
-torch==1.13.1
-torchvision==0.14.1
+# synchronized with nix
+
+torch==2.3.0
+torchvision==0.18.0
 more-itertools==10.2.0
