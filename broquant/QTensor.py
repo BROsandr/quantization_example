@@ -178,7 +178,7 @@ def q_mm(input: QTensor, mat2: QTensor)->QTensor:
   c_dtype=c.dtype
   for i in range(ar):
       for j in range(bc):
-          c[i,j] = (input[i,:] * mat2[:,j]).sum(dtype=c_dtype) # multiply all of column j by all of row i and sum it
+          c[i] = (input[i].unsqueeze(-1) * mat2).sum(dim=0,dtype=c_dtype)
   return c
 
 implements(torch.matmul)(q_matmul)
