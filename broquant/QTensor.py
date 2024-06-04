@@ -143,7 +143,7 @@ def q_mul(input: QTensor, other: QTensor):
 
   # see hints regarding the algorithm at https://github.com/google/gemmlowp/blob/master/doc/quantization.md
   # Algorithm:
-  # 1. x_n = x - zp: remove the bias from a tensor. To do so we need to increase the data storage from 8 bits up to int16. We choose a signed type for easy multiplication handling. It is unimportant whether the x is signed or unsigned because the zp already had been properly modified be a caller. Thus converts the tensor to the standard fixed-point format.
+  # 1. x_n = x - zp: remove the bias of a tensor. To do so we need to increase the data storage from 8 bits up to int16. We choose a signed type for easy multiplication handling. It is unimportant whether the x is signed or unsigned because the zp already had been properly modified by a caller. Thus converts the tensor to the standard fixed-point format.
   # 2. y = x1 * x2, s = s1 * s2: multiply two fixed-point tensors. Increase data storage from int16 up to int32. Resulting bias is 0.
   # 3. Return y. Caller then can requantize and rescaled back to 8 bits.
 
