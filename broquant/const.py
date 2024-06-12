@@ -1,4 +1,5 @@
-from pathlib import Path
+from importlib.resources import files
 
-MNIST_DATASET_PATH = Path('./data/mnist')
-MNIST_MODEL_PATH = Path('./data/mnist_cnn.pt')
+DATA_ROOT_PATH = files('broquant.data')
+MNIST_DATASET_PATH = DATA_ROOT_PATH / 'mnist'
+MNIST_MODEL_PATH = DATA_ROOT_PATH / 'mnist_cnn.pt'
