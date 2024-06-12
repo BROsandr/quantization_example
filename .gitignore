@@ -1,4 +1,5 @@
 nix/sources.nix
 **/__pycache__
 data/mnist
+broquant/data/mnist
 **/.*

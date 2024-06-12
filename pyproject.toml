@@ -1,0 +1,27 @@
+[project]
+name = "broquant"
+version = "0.0.1"
+authors = [
+  { name="Brosandr", email="sasha_xarlamov@mail.ru" },
+]
+description = "An example of neural network quantization from scratch."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  "torch>=2.3.0",
+  "torchvision>=0.18.0",
+  "more-itertools>=10.2.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/BROsandr/quantization_example"
+Issues = "https://github.com/BROsandr/quantization_example/issues"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
