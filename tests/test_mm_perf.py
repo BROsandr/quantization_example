@@ -1,6 +1,3 @@
-import sys
-if __name__ == '__main__': sys.path.append('.')
-
 import random
 import torch
 from broquant.QTensor import QTensor

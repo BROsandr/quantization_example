@@ -25,3 +25,6 @@ Issues = "https://github.com/BROsandr/quantization_example/issues"
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["broquant"]

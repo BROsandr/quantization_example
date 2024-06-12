@@ -1,6 +1,4 @@
 import sys
-if __name__ == '__main__': sys.path.append('.')
-
 from broquant.const import MNIST_MODEL_PATH, MNIST_DATASET_PATH
 from broquant.Model import Model
 import torch

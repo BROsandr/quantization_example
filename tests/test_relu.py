@@ -5,7 +5,6 @@ from torch.nn import functional as F
 import torch.nn as nn
 import random
 import os
-if __name__ == '__main__': sys.path.append('.')
 from broquant.utils import Metrics, eval_metrics, metrics2str
 
 from broquant.QTensor import QTensor

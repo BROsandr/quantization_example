@@ -3,3 +3,5 @@ nix/sources.nix
 data/mnist
 broquant/data/mnist
 **/.*
+broquant.egg-info
+build

@@ -1,6 +1,5 @@
 import unittest
 import sys
-if __name__ == '__main__': sys.path.append('.')
 import torch
 from torch.nn import functional as F
 import torch.nn as nn

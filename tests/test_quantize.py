@@ -1,6 +1,4 @@
 import unittest
-import sys
-if __name__ == '__main__': sys.path.append('.')
 import torch
 from broquant.QTensor import dequantize_tensor, quantize_tensor
 import random
