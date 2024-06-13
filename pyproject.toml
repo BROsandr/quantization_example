@@ -1,12 +1,12 @@
 [project]
 name = "broquant"
-version = "0.0.1"
+version = "0.1.0"
 authors = [
   { name="Brosandr", email="sasha_xarlamov@mail.ru" },
 ]
 description = "An example of neural network quantization from scratch."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10.12"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
