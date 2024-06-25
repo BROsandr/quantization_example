@@ -23,9 +23,9 @@
      inkscape:pagecheckerboard="true"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="px"
-     inkscape:zoom="0.51339147"
-     inkscape:cx="798.61086"
-     inkscape:cy="178.22657"
+     inkscape:zoom="0.72604518"
+     inkscape:cx="746.51002"
+     inkscape:cy="610.84353"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="-8"
@@ -90,7 +90,7 @@
          x="259.29166"
          y="142.875">r = S(q − Z)=&gt; q = r / S + Z</tspan></text>
     <path
-       style="fill:#ff0000;fill-rule:evenodd;stroke:#ff6600;stroke-width:1.32291667;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-start:url(#ArrowWide);stroke-dasharray:none"
+       style="fill:#ff0000;fill-rule:evenodd;stroke:#ff6600;stroke-width:1.32292;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#ArrowWide)"
        d="m 195.79165,145.52082 v 15.875"
        id="path1"
        inkscape:connector-type="polyline"
@@ -108,38 +108,38 @@
          y="171.97916">scale</tspan></text>
     <path
        style="fill:#00ffff;fill-rule:evenodd;stroke:#00ffff;stroke-width:1.32292;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#ArrowWide)"
-       d="m 235.47915,131.02548 v -15.875"
+       d="M 235.47916,129.75092 V 97.895828"
        id="path3"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.2889px;font-family:'JetBrainsMonoNL Nerd Font';-inkscape-font-specification:'JetBrainsMonoNL Nerd Font, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;text-anchor:middle;fill:#00ffff;fill-opacity:1;stroke:none;stroke-width:1.32292;stroke-dasharray:none"
-       x="235.47916"
-       y="112.33502"
+       x="235.42271"
+       y="93.217995"
        id="text3"><tspan
          sodipodi:role="line"
          id="tspan3"
          style="fill:#00ffff;fill-opacity:1;stroke:none;stroke-width:1.32292"
-         x="235.47916"
-         y="112.33502">scale</tspan></text>
+         x="235.42271"
+         y="93.217995">zero_point</tspan></text>
     <path
        style="fill:#ff00ff;fill-rule:evenodd;stroke:#ff00ff;stroke-width:1.32292;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#ArrowWide)"
-       d="M 209.02082,131.05906 V 95.249995"
+       d="M 209.02082,131.73675 V 115.09374"
        id="path4"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.2889px;font-family:'JetBrainsMonoNL Nerd Font';-inkscape-font-specification:'JetBrainsMonoNL Nerd Font, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;text-anchor:middle;fill:#ff00ff;fill-opacity:1;stroke:none;stroke-width:1.32292;stroke-dasharray:none"
-       x="209.01518"
-       y="92.493523"
+       x="208.98131"
+       y="111.23435"
        id="text4"><tspan
          sodipodi:role="line"
          id="tspan4"
          style="fill:#ff00ff;fill-opacity:1;stroke:none;stroke-width:1.32292"
-         x="209.01518"
-         y="92.493523">quant</tspan></text>
+         x="208.98131"
+         y="111.23435">quant</tspan></text>
     <path
        style="fill:#ffff00;fill-rule:evenodd;stroke:#554400;stroke-width:1.32292;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#ArrowWide)"
        d="m 166.68749,131.02548 v -15.875"
