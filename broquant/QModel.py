@@ -121,7 +121,23 @@ class QModel(nn.Module):
       def scale_mult(x: QTensor, new_scale: float):
         rescale = x.scale / new_scale
         int32_qmin, int32_qmax = dtype2min_max(torch.int32)
-        res = torch.Tensor(x).float() * rescale
+        def normalized_mult(tensor: torch.Tensor, scale: float):
+          m0 = scale
+          n = 0
+          assert(0 <= m0 < 1)
+          while not (0.5 <= m0 < 1):
+            n += 1
+            m0 *= 2
+
+          m0 *= 2 ** 16
+          n += 16
+
+          tensor *= int(m0)
+          tensor *= 2 ** -n
+
+          return tensor
+        res = normalized_mult(tensor=torch.Tensor(x).float(), scale=rescale)
+        # res = torch.Tensor(x).float() * rescale
         res.round_().clamp_(int32_qmin, int32_qmax)
         return QTensor(tensor=res.to(torch.int32), scale=new_scale, zero_point=0)
 
