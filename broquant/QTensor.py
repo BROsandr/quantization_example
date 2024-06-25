@@ -149,7 +149,7 @@ def q_mul(input: QTensor, other: QTensor):
 
   def check_dtype(tensor: QTensor)->None:
     dtype = tensor.dtype
-    if not ((dtype is torch.uint8) or (dtype is torch.int8)):
+    if not ((dtype is torch.uint8) or (dtype is torch.int8) or (dtype is torch.int32)):
       raise NotImplemented(f"Unsupported dtype:{dtype}")
 
   if __debug__:

@@ -110,7 +110,7 @@ class QModel(nn.Module):
     q_x = model.conv1(q_x)
 
     def requantize(q_x: QTensor, stats) -> QTensor:
-      x = q_x.dequantize()
+      x = q_x
 
       dtype=torch.uint8
       qmin, qmax = dtype2min_max(dtype)
@@ -118,10 +118,17 @@ class QModel(nn.Module):
       max_val=stats['max']
       scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), qmin=qmin, qmax=qmax)
 
-      q_x = zero_point + x / scale
+      def scale_mult(x: QTensor, new_scale: float):
+        rescale = x.scale / new_scale
+        int32_qmin, int32_qmax = dtype2min_max(torch.int32)
+        res = torch.Tensor(x).float() * rescale
+        res.round_().clamp_(int32_qmin, int32_qmax)
+        return QTensor(tensor=res.to(torch.int32), scale=new_scale, zero_point=0)
+
+      q_x = zero_point + scale_mult(x, new_scale=scale)
       q_x.round_().clamp_(qmin, qmax)
       q_x = q_x.to(dtype)
-      return QTensor(tensor=q_x, scale=scale, zero_point=zero_point)
+      return q_x
 
     q_x = requantize(q_x, stats['conv2'])
 
