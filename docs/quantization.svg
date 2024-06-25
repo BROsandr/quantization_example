@@ -25,8 +25,8 @@
      inkscape:document-units="px"
      showgrid="true"
      inkscape:zoom="1.4520903"
-     inkscape:cx="977.55625"
-     inkscape:cy="474.14405"
+     inkscape:cx="1063.9834"
+     inkscape:cy="850.15374"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="-8"
@@ -516,5 +516,56 @@
          style="stroke-width:0.264583"
          x="243.07228"
          y="62.429287">q_output = r_output / s_output + zp_output </tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.264584;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.264584, 0.79375;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#ArrowWide)"
+       d="M 216.93561,256.66717 322.54544,228.33712"
+       id="path2"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.264583, 0.793749;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#ArrowWide)"
+       d="m 280.41708,259.30711 47.44883,-28.71302"
+       id="path3"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:'JetBrainsMonoNL Nerd Font';-inkscape-font-specification:'JetBrainsMonoNL Nerd Font, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583;stroke-dasharray:none"
+       x="339.46088"
+       y="199.80702"
+       id="text7"><tspan
+         sodipodi:role="line"
+         id="tspan7"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:'JetBrainsMonoNL Nerd Font';-inkscape-font-specification:'JetBrainsMonoNL Nerd Font, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:0.264583"
+         x="339.46088"
+         y="199.80702">int32</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:'JetBrainsMonoNL Nerd Font';-inkscape-font-specification:'JetBrainsMonoNL Nerd Font, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;text-anchor:middle;fill:#000000;stroke:none;stroke-width:0.264583;stroke-dasharray:0.264583, 0.79375;stroke-dashoffset:0"
+       x="339.3783"
+       y="224.87465"
+       id="text17"><tspan
+         sodipodi:role="line"
+         id="tspan17"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:'JetBrainsMonoNL Nerd Font';-inkscape-font-specification:'JetBrainsMonoNL Nerd Font, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.264583"
+         x="339.3783"
+         y="224.87465">N*z1*z2 - z1*a2 -</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:'JetBrainsMonoNL Nerd Font';-inkscape-font-specification:'JetBrainsMonoNL Nerd Font, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.264583"
+         x="340.01331"
+         y="227.52049"
+         id="tspan22">z2*a1 + Σ(q21 * q11) </tspan></text>
+    <circle
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.264583;stroke-dasharray:0.264583, 0.79375;stroke-dashoffset:0;stroke-opacity:1"
+       id="circle22"
+       cx="339.47357"
+       cy="210.82431"
+       r="8.46667" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.264582px;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.264582, 0.793746;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#ArrowWide)"
+       d="M 330.67201,206.31068 251.35454,177.58736"
+       id="path22"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
   </g>
 </svg>
