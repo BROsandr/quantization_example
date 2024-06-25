@@ -554,7 +554,7 @@
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11667px;font-family:'JetBrainsMonoNL Nerd Font';-inkscape-font-specification:'JetBrainsMonoNL Nerd Font, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.264583"
          x="340.01331"
          y="227.52049"
-         id="tspan22">z2*a1 + Σ(q21 * q11) </tspan></text>
+         id="tspan22">z2*a1 + Σ(q2 * q1) </tspan></text>
     <circle
        style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.264583;stroke-dasharray:0.264583, 0.79375;stroke-dashoffset:0;stroke-opacity:1"
        id="circle22"
