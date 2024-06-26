@@ -33,15 +33,7 @@ def gatherActivationStats(model, x, stats):
 
   x = F.relu(model.conv1(x))
 
-  x = F.max_pool2d(x, 2, 2)
-
-  stats = updateStats(x.clone().view(x.shape[0], -1), stats, 'conv2')
-
-  x = F.relu(model.conv2(x))
-
-  x = F.max_pool2d(x, 2, 2)
-
-  x = x.view(-1, 4*4*50)
+  x = torch.flatten(x, start_dim=1)
 
   stats = updateStats(x, stats, 'fc1')
 
@@ -112,17 +104,9 @@ class QModel(nn.Module):
     def requantize(q_x: QTensor, stats) -> QTensor:
       return QTensor.quantize(q_x.dequantize(), min_val=stats['min'], max_val=stats['max'])
 
-    q_x = requantize(q_x, stats['conv2'])
-
-    q_x = F.max_pool2d(q_x, 2, 2)
-
-    q_x = model.conv2(q_x)
-
     q_x = requantize(q_x, stats['fc1'])
 
-    q_x = F.max_pool2d(q_x, 2, 2)
-
-    q_x = q_x.view(-1, 4*4*50)
+    q_x = torch.flatten(q_x, start_dim=1)
 
     q_x = model.fc1(q_x)
 
