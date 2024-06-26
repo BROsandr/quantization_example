@@ -94,7 +94,7 @@ class QModel(nn.Module):
     # Quantise before inputting into incoming layers
     q_x = QTensor.quantize(x, min_val=stats['conv1']['min'], max_val=stats['conv1']['max'])
 
-    q_x = model.conv1(q_x)
+    q_x = F.relu(model.conv1(q_x))
 
     def requantize(q_x: QTensor, stats) -> QTensor:
       return QTensor.quantize(q_x.dequantize(), min_val=stats['min'], max_val=stats['max'])
@@ -103,7 +103,7 @@ class QModel(nn.Module):
 
     q_x = torch.flatten(q_x, start_dim=1)
 
-    q_x = model.fc1(q_x)
+    q_x = F.relu(model.fc1(q_x))
 
     q_x = requantize(q_x, stats['fc2'])
 
