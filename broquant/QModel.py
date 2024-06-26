@@ -12,17 +12,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Get Min and max of x tensor, and stores it
-def updateStats(x, stats, key):
-  max_val, _ = torch.max(x, dim=1)
-  min_val, _ = torch.min(x, dim=1)
-
+def updateStats(x, stats: dict, key):
+  max_val = x.max()
+  min_val = x.min()
 
   if key not in stats:
-    stats[key] = {"max": max_val.sum(), "min": min_val.sum(), "total": 1}
+    stats[key] = {"max": max_val, "min": min_val}
   else:
-    stats[key]['max'] += max_val.sum().item()
-    stats[key]['min'] += min_val.sum().item()
-    stats[key]['total'] += 1
+    stats[key]['max'] = max(stats[key]['max'], max_val)
+    stats[key]['min'] = min(stats[key]['min'], min_val)
 
   return stats
 
@@ -58,10 +56,7 @@ def gatherStats(model, test_loader):
             data, target = data.to(device), target.to(device)
             stats = gatherActivationStats(model, data, stats)
 
-    final_stats = {}
-    for key, value in stats.items():
-      final_stats[key] = { "max" : value["max"] / value["total"], "min" : value["min"] / value["total"] }
-    return final_stats
+    return stats
 
 def quantize_bias(module: nn.Module, min_val, max_val):
   logger.debug('In quantize_bias(...).')
