@@ -12,17 +12,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Get Min and max of x tensor, and stores it
-def updateStats(x, stats, key):
-  max_val, _ = torch.max(x, dim=1)
-  min_val, _ = torch.min(x, dim=1)
-
+def updateStats(x, stats: dict, key):
+  max_val = x.max()
+  min_val = x.min()
 
   if key not in stats:
-    stats[key] = {"max": max_val.sum(), "min": min_val.sum(), "total": 1}
+    stats[key] = {"max": max_val, "min": min_val}
   else:
-    stats[key]['max'] += max_val.sum().item()
-    stats[key]['min'] += min_val.sum().item()
-    stats[key]['total'] += 1
+    stats[key]['max'] = max(stats[key]['max'], max_val)
+    stats[key]['min'] = min(stats[key]['min'], min_val)
 
   return stats
 
@@ -33,15 +31,7 @@ def gatherActivationStats(model, x, stats):
 
   x = F.relu(model.conv1(x))
 
-  x = F.max_pool2d(x, 2, 2)
-
-  stats = updateStats(x.clone().view(x.shape[0], -1), stats, 'conv2')
-
-  x = F.relu(model.conv2(x))
-
-  x = F.max_pool2d(x, 2, 2)
-
-  x = x.view(-1, 4*4*50)
+  x = torch.flatten(x, start_dim=1)
 
   stats = updateStats(x, stats, 'fc1')
 
@@ -66,10 +56,7 @@ def gatherStats(model, test_loader):
             data, target = data.to(device), target.to(device)
             stats = gatherActivationStats(model, data, stats)
 
-    final_stats = {}
-    for key, value in stats.items():
-      final_stats[key] = { "max" : value["max"] / value["total"], "min" : value["min"] / value["total"] }
-    return final_stats
+    return stats
 
 def quantize_bias(module: nn.Module, min_val, max_val):
   logger.debug('In quantize_bias(...).')
@@ -107,7 +94,7 @@ class QModel(nn.Module):
     # Quantise before inputting into incoming layers
     q_x = QTensor.quantize(x, min_val=stats['conv1']['min'], max_val=stats['conv1']['max'])
 
-    q_x = model.conv1(q_x)
+    q_x = F.relu(model.conv1(q_x))
 
     def requantize(q_x: QTensor, stats) -> QTensor:
       x = q_x
@@ -146,19 +133,11 @@ class QModel(nn.Module):
       q_x = q_x.to(dtype)
       return q_x
 
-    q_x = requantize(q_x, stats['conv2'])
-
-    q_x = F.max_pool2d(q_x, 2, 2)
-
-    q_x = model.conv2(q_x)
-
     q_x = requantize(q_x, stats['fc1'])
 
-    q_x = F.max_pool2d(q_x, 2, 2)
+    q_x = torch.flatten(q_x, start_dim=1)
 
-    q_x = q_x.view(-1, 4*4*50)
-
-    q_x = model.fc1(q_x)
+    q_x = F.relu(model.fc1(q_x))
 
     q_x = requantize(q_x, stats['fc2'])
 
