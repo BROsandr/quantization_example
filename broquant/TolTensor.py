@@ -28,11 +28,17 @@ class TolTensor(torch.Tensor):
   def mm(self, mat2: "TolTensor") -> "TolTensor":
     return torch.mm(self, mat2)
 
-  def __mul__(self, other: "TolTensor") -> "TolTensor":
+  def __mul__(self, other) -> "TolTensor":
     return torch.mul(self, other)
 
-  def mul(self, other: "TolTensor") -> "TolTensor":
+  def mul(self, other) -> "TolTensor":
     return torch.mul(self, other)
+
+  def __div__(self, other) -> "TolTensor":
+    return torch.div(self, other)
+
+  def div(self, other) -> "TolTensor":
+    return torch.div(self, other)
 
   def __add__(self, other):
     return torch.add(self, other)
@@ -40,12 +46,19 @@ class TolTensor(torch.Tensor):
   def add(self, other):
     return torch.add(self, other)
 
-  def mul_(self, other: "TolTensor") -> "TolTensor":
+  def mul_(self, other) -> "TolTensor":
     self = torch.mul(self, other)
     return self
 
-  def __imul__(self, other: "TolTensor") -> "TolTensor":
+  def div_(self, other) -> "TolTensor":
+    self = torch.div(self, other)
+    return self
+
+  def __imul__(self, other) -> "TolTensor":
     return self.mul_(other)
+
+  def __idiv__(self, other) -> "TolTensor":
+    return self.div_(other)
 
   def __iadd__(self, other):
     return self.add_(other)
@@ -148,6 +161,19 @@ def tol_tensor_mul(input, other):
     tensor_res = torch.Tensor(input) * other
     res_atol = input.atol * other
   return TolTensor(tensor=tensor_res, atol=res_atol)
+
+@implements(torch.div)
+def tol_tensor_div(input, other):
+  divider = None
+  if issubclass(other, torch.Tensor):
+    divider = other.clone(1. / torch.Tensor(other))
+  else:
+    divider = 1. / other
+  return torch.mul(input, divider)
+
+@implements(torch.sub)
+def tol_tensor_sub(input, other):
+  return torch.add(input, -other)
 
 @implements(torch.add)
 def tol_tensor_add(input, other):
