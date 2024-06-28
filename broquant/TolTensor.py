@@ -139,12 +139,15 @@ def tol_tensor_mul(input, other):
   """
   tensor_atol = None
   tensor_res = None
+  res_atol = None
   if isinstance(other, TolTensor):
-    tensor_atol = input.atol * torch.Tensor(other).abs() + other.atol * torch.Tensor(input).abs()
-    tensor_res = torch.Tensor(other)
-  res_atol = tensor_atol.max().item() if tensor_atol is not None else input.atol * other
-  res = torch.Tensor(input) * (tensor_res if tensor_res is not None else other)
-  return TolTensor(tensor=res, atol=res_atol)
+    tensor_res = torch.Tensor(input) * torch.Tensor(other)
+    tensor_atol = tensor_res * (input.atol / torch.Tensor(input).abs() + other.atol / torch.Tensor(other).abs())
+    res_atol = tensor_atol.max().item()
+  else:
+    tensor_res = torch.Tensor(input) * other
+    res_atol = input.atol * other
+  return TolTensor(tensor=tensor_res, atol=res_atol)
 
 @implements(torch.add)
 def tol_tensor_add(input, other):
