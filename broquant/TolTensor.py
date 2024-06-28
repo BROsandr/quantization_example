@@ -80,6 +80,15 @@ class TolTensor(torch.Tensor):
   def sum(self, dtype=None):
     return torch.sum(self, dtype=dtype)
 
+  def __getitem__(self, key):
+    if not((type(key) == type(self)) and (key.dtype == torch.bool)): return NotImplemented
+    return super(TolTensor, self).__getitem__(torch.Tensor(key))
+
+  def __setitem__(self, key, value):
+    if not((type(key) == type(self)) and (key.dtype == torch.bool)): return NotImplemented
+    if not(type(value) == type(self)): return NotImplemented
+    super(TolTensor, self).__setitem__(torch.Tensor(key), torch.Tensor(value))
+
   @classmethod
   def __torch_function__(cls, func, types, args=(), kwargs=None):
     if kwargs is None:
@@ -178,3 +187,18 @@ def q_fold(input, *args, **kwargs):
   if input.numel() != res.numel():
     raise NotImplementedError("Number of output's elements differs from the input's. Implement atol recalculation.")
   return TolTensor(tensor=res, atol=input.atol)
+
+@implements(torch.nn.functional.hardswish)
+def tol_hardswish(input: TolTensor, inplace=False):
+  x = input if inplace else input.clone()
+  left_range = x <= -3.
+  middle_range = torch.logical_and(x > -3., x < 3.)
+  x[left_range] = 0
+  x[middle_range] = ((x[middle_range] * x[middle_range]) + (x[middle_range] * 3.)) / 6.
+  return x
+
+@implements(torch.logical_and)
+def tol_logical_and(input: TolTensor, other: TolTensor):
+  res = torch.logical_and(torch.Tensor(input), torch.Tensor(input))
+  res_atol = 0
+  return TolTensor(tensor=res, atol=res_atol)
