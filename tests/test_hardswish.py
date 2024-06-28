@@ -71,6 +71,16 @@ class TestConst(unittest.TestCase):
     cmp_res = torch.allclose(expected, actual, rtol=0.01, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)
 
+  def test_unknown1(self):
+    x = torch.tensor([[0.8832, 0.7181, 0.3732, 0.5176],
+          [0.3493, 0.5380, 0.6766, 0.3606]], requires_grad=False)
+    with torch.no_grad():
+      expected = F.hardswish(x)
+      q_input = QTensor.quantize(x)
+      actual = F.hardswish(q_input).dequantize()
+    cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
+    self.assertTrue(cmp_res)
+
 @unittest.skip("")
 class TestRandom(unittest.TestCase):
   def setUp(self):
