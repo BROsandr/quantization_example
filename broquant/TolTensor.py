@@ -94,13 +94,17 @@ class TolTensor(torch.Tensor):
     return torch.sum(self, dtype=dtype)
 
   def __getitem__(self, key):
-    if not((type(key) == type(self)) and (key.dtype == torch.bool)): return NotImplemented
-    return super(TolTensor, self).__getitem__(torch.Tensor(key))
+    if type(key) == type(self):
+      return super(TolTensor, self).__getitem__(torch.Tensor(key))
+    else:
+      return super(TolTensor, self).__getitem__(key)
 
   def __setitem__(self, key, value):
-    if not((type(key) == type(self)) and (key.dtype == torch.bool)): return NotImplemented
     if not(type(value) == type(self)): return NotImplemented
-    super(TolTensor, self).__setitem__(torch.Tensor(key), torch.Tensor(value))
+    if type(key) == type(self):
+      super(TolTensor, self).__setitem__(torch.Tensor(key), torch.Tensor(value))
+    else:
+      super(TolTensor, self).__setitem__(key, torch.Tensor(value))
 
   @classmethod
   def __torch_function__(cls, func, types, args=(), kwargs=None):
