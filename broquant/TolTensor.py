@@ -34,7 +34,7 @@ class TolTensor(torch.Tensor):
   def mul(self, other) -> "TolTensor":
     return torch.mul(self, other)
 
-  def __div__(self, other) -> "TolTensor":
+  def __truediv__(self, other) -> "TolTensor":
     return torch.div(self, other)
 
   def div(self, other) -> "TolTensor":
@@ -57,7 +57,7 @@ class TolTensor(torch.Tensor):
   def __imul__(self, other) -> "TolTensor":
     return self.mul_(other)
 
-  def __idiv__(self, other) -> "TolTensor":
+  def __itruediv__(self, other) -> "TolTensor":
     return self.div_(other)
 
   def __iadd__(self, other):
