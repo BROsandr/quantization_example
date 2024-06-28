@@ -60,7 +60,16 @@ class TestConst(unittest.TestCase):
     cmp_res = torch.allclose(expected, actual, rtol=0.01, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)
 
-# @unittest.skip("")
+  def test_127(self):
+    x = torch.tensor([127.], requires_grad=False)
+    with torch.no_grad():
+      expected = F.hardswish(x)
+      q_input = QTensor.quantize(x)
+      actual = F.hardswish(q_input).dequantize()
+    cmp_res = torch.allclose(expected, actual, rtol=0.01, atol=calc_max_HS_atol(q_input))
+    self.assertTrue(cmp_res)
+
+@unittest.skip("")
 class TestRandom(unittest.TestCase):
   def setUp(self):
     self.randomizer = HSRandomizer()
