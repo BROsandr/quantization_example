@@ -214,7 +214,7 @@ def q_hardswish(input: QTensor, inplace=False):
   x = input if inplace else input.clone()
   dequant_x = x.dequantize()
   left_range = dequant_x <= -3.
-  middle_range = (dequant_x > -3.) * (dequant_x < 3.)
+  middle_range = torch.logical_and(dequant_x > -3., dequant_x < 3.)
   x[left_range] = x.zero_point
   x[middle_range] = ((torch.Tensor(x[middle_range]).float() * torch.Tensor(x[middle_range]).float()) / 6. * x.scale + (torch.Tensor(x[middle_range]).float() * 3.) / 6.).round().clamp(min=torch.iinfo(x.dtype).min, max=torch.iinfo(x.dtype).max).to(x.dtype)
   return x
