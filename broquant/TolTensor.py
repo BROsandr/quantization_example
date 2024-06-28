@@ -165,7 +165,7 @@ def tol_tensor_mul(input, other):
 @implements(torch.div)
 def tol_tensor_div(input, other):
   divider = None
-  if issubclass(other, torch.Tensor):
+  if isinstance(other, torch.Tensor):
     divider = other.clone(1. / torch.Tensor(other))
   else:
     divider = 1. / other
