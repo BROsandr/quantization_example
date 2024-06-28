@@ -211,7 +211,7 @@ implements(torch.nn.functional.linear)(q_linear)
 implements(torch.matmul)(q_matmul)
 
 @implements(torch.nn.functional.fold)
-def q_fold(input, *args, **kwargs):
+def tol_fold(input, *args, **kwargs):
   res=torch.nn.functional.fold(torch.Tensor(input), *args, **kwargs) # fold doesn't support int
   if input.numel() != res.numel():
     raise NotImplementedError("Number of output's elements differs from the input's. Implement atol recalculation.")
