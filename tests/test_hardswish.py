@@ -39,7 +39,9 @@ class HSRandomizer:
 
 def calc_max_HS_atol(input: QTensor, func=F.hardswish)->float:
   input_tol_tensor = TolTensor.from_QTensor(input)
-  return func(input=input_tol_tensor).atol
+  res = func(input=input_tol_tensor).atol
+  res += input.scale / 2 # Take into account rounding error.
+  return res
 
 class TestConst(unittest.TestCase):
   def test_1(self):
