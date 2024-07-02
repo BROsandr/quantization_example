@@ -88,7 +88,7 @@ class QTensor(torch.Tensor):
   @classmethod
   def quantize(cls, x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0, zp_dtype=torch.int32):
     assert(isinstance(x, torch.Tensor))
-    return quantize_tensor(x=x, dtype=dtype, min_val=min_val, max_val=max_val, scale=scale, zero_point=zero_point)
+    return quantize_tensor(x=x, dtype=dtype, min_val=min_val, max_val=max_val, scale=scale, zero_point=zero_point, zp_dtype=zp_dtype)
 
   def dequantize(self)->torch.Tensor:
     return dequantize_tensor(self)
