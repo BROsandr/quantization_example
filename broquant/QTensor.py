@@ -118,6 +118,11 @@ def calcScaleZeroPoint(min_val, max_val, qmin, qmax)->tuple[float, int]:
 
     zero_point = round(-min_zero_scaled * scale) # convert to uint range. Note that here we use multiplication not division. The divison is used in the case of min_val.
 
+  zp_min = qmin
+  zp_max = qmax
+
+  assert zp_min <= zero_point <= zp_max, f'zero_point ({zero_point}) is outside target range ([{zp_min}; {zp_max}])'
+
   return scale, zero_point
 
 def quantize_tensor(x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0)->QTensor:
