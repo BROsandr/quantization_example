@@ -94,19 +94,7 @@ class QTensor(torch.Tensor):
     return dequantize_tensor(self)
 
 def calcScaleZeroPoint(min_val, max_val, qmin, qmax, zp_min, zp_max)->tuple[float, int]:
-  if min_val != max_val: # do the min-max quantization with the bias and the activation
-    scale = (max_val - min_val) / (qmax - qmin)
-
-    zero_point = round(qmin - min_val / scale)
-
-    def clamp(n, smallest, largest): return max(smallest, min(n, largest))
-
-    if not (zp_min <= zero_point <= zp_max):
-      zero_point = clamp(zero_point, smallest=zp_min, largest=zp_max)
-      scale = min_val / (qmin - zero_point) # recalc scale based on zp because we clamped zp
-
-  else: # do the nearest scale quantization without the bias
-    val = min_val
+  def calc_no_bias(val, qmin, qmax):
     min_zero_scaled = qmin
     max_zero_scaled = qmax
     if not (min_zero_scaled <= val <= max_zero_scaled):
@@ -124,6 +112,19 @@ def calcScaleZeroPoint(min_val, max_val, qmin, qmax, zp_min, zp_max)->tuple[floa
     scale = find_scale(val)
 
     zero_point = round(-min_zero_scaled * scale) # convert to uint range. Note that here we use multiplication not division. The divison is used in the case of min_val.
+
+    return scale, zero_point
+
+  if min_val != max_val: # do the min-max quantization with the bias and the activation
+    scale = (max_val - min_val) / (qmax - qmin)
+
+    zero_point = round(qmin - min_val / scale)
+
+    if not (zp_min <= zero_point <= zp_max):
+      scale, zero_point = calc_no_bias(val=max(abs(min_val), abs(max_val)), qmin=qmin, qmax=qmax)
+
+  else: # do the nearest scale quantization without the bias
+    scale, zero_point = calc_no_bias(val=min_val, qmin=qmin, qmax=qmax)
 
   return scale, zero_point
 
