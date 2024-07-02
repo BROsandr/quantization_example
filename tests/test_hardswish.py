@@ -75,7 +75,7 @@ class TestConst(unittest.TestCase):
     x = torch.tensor([0.8832, 0.7181], requires_grad=False)
     with torch.no_grad():
       expected = F.hardswish(x)
-      q_input = QTensor.quantize(x)
+      q_input = QTensor.quantize(x, zp_dtype=torch.int8)
       actual = F.hardswish(q_input).dequantize()
     cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)

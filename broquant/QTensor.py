@@ -225,9 +225,14 @@ def q_relu(input: QTensor, inplace=False):
 @act_warning
 def q_hardswish(input: QTensor, inplace=False):
   x = input if inplace else input.clone()
+  unzp_type = torch.int32
+  x = x.to(unzp_type) - x.zero_point
   dequant_x = x.dequantize()
   left_range = dequant_x <= -3.
   middle_range = torch.logical_and(dequant_x > -3., dequant_x < 3.)
-  x[left_range] = x.zero_point
-  x[middle_range] = (((torch.Tensor(x[middle_range]).float() * torch.Tensor(x[middle_range]).float()) * x.scale + (torch.Tensor(x[middle_range]).float() * 3.)) / 6.).round().clamp(min=torch.iinfo(x.dtype).min, max=torch.iinfo(x.dtype).max).to(x.dtype)
+  if left_range.sum() > 0: x[left_range] = 0
+  if middle_range.sum() > 0:
+    x[middle_range] = (((torch.Tensor(x[middle_range]).float() * torch.Tensor(x[middle_range]).float()) + ((torch.Tensor(x[middle_range]).float() / x.scale) * 3.)) / 6.).round().clamp(min=torch.iinfo(x.dtype).min, max=torch.iinfo(x.dtype).max).to(x.dtype)
+  x.scale = input.scale ** 2
+  x.zero_point = 0
   return x
