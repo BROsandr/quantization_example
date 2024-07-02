@@ -59,7 +59,7 @@ class TestConst(unittest.TestCase):
       expected = F.hardswish(x)
       q_input = QTensor.quantize(x)
       actual = F.hardswish(q_input).dequantize()
-    cmp_res = torch.allclose(expected, actual, rtol=0.01, atol=calc_max_HS_atol(q_input))
+    cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)
 
   def test_127(self):
@@ -68,7 +68,7 @@ class TestConst(unittest.TestCase):
       expected = F.hardswish(x)
       q_input = QTensor.quantize(x)
       actual = F.hardswish(q_input).dequantize()
-    cmp_res = torch.allclose(expected, actual, rtol=0.01, atol=calc_max_HS_atol(q_input))
+    cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)
 
   def test_unknown2(self):
@@ -90,7 +90,6 @@ class TestConst(unittest.TestCase):
     cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)
 
-@unittest.skip("")
 class TestRandom(unittest.TestCase):
   def setUp(self):
     self.randomizer = HSRandomizer()
@@ -114,7 +113,7 @@ class TestRandom(unittest.TestCase):
     self.max_metrics[Metrics.ABS_ERROR] = max(self.max_metrics[Metrics.ABS_ERROR], metrics[Metrics.ABS_ERROR])
     self.max_metrics[Metrics.REL_ERROR] = max(self.max_metrics[Metrics.REL_ERROR], metrics[Metrics.REL_ERROR])
     self.assertGreaterEqual(metrics[Metrics.MAX_EXPECTED], metrics[Metrics.ATOL]) # sanity check
-    self.assertTrue(torch.allclose(input=actual, other=expected, atol=metrics[Metrics.ATOL], rtol=0.1))
+    self.assertTrue(torch.allclose(input=actual, other=expected, atol=metrics[Metrics.ATOL]))
 
   def test_run(self):
     for i in range(self.ITER_NUM):
