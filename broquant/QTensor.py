@@ -86,18 +86,25 @@ class QTensor(torch.Tensor):
     return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
   @classmethod
-  def quantize(cls, x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0):
+  def quantize(cls, x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0, zp_dtype=torch.int32):
     assert(isinstance(x, torch.Tensor))
     return quantize_tensor(x=x, dtype=dtype, min_val=min_val, max_val=max_val, scale=scale, zero_point=zero_point)
 
   def dequantize(self)->torch.Tensor:
     return dequantize_tensor(self)
 
-def calcScaleZeroPoint(min_val, max_val, qmin, qmax)->tuple[float, int]:
+def calcScaleZeroPoint(min_val, max_val, qmin, qmax, zp_min, zp_max)->tuple[float, int]:
   if min_val != max_val: # do the min-max quantization with the bias and the activation
     scale = (max_val - min_val) / (qmax - qmin)
 
     zero_point = round(qmin - min_val / scale)
+
+    def clamp(n, smallest, largest): return max(smallest, min(n, largest))
+
+    if not (zp_min <= zero_point <= zp_max):
+      zero_point = clamp(zero_point, smallest=zp_min, largest=zp_max)
+      scale = min_val / (qmin - zero_point) # recalc scale based on zp because we clamped zp
+
   else: # do the nearest scale quantization without the bias
     val = min_val
     min_zero_scaled = qmin
@@ -118,25 +125,24 @@ def calcScaleZeroPoint(min_val, max_val, qmin, qmax)->tuple[float, int]:
 
     zero_point = round(-min_zero_scaled * scale) # convert to uint range. Note that here we use multiplication not division. The divison is used in the case of min_val.
 
-  zp_min = qmin
-  zp_max = qmax
-
-  assert zp_min <= zero_point <= zp_max, f'zero_point ({zero_point}) is outside target range ([{zp_min}; {zp_max}])'
-
   return scale, zero_point
 
-def quantize_tensor(x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0)->QTensor:
+def quantize_tensor(x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0, zp_dtype=torch.int32)->QTensor:
 
     qmin, qmax = dtype2min_max(dtype)
+
+    zp_min, zp_max = dtype2min_max(zp_dtype)
 
     if not min_val and not max_val:
       min_val, max_val = x.min(), x.max()
 
     if not scale:
-      scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), qmin=qmin, qmax=qmax)
+      scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), qmin=qmin, qmax=qmax, zp_min=zp_min, zp_max=zp_max)
     q_x = zero_point + x / scale
     q_x.round_().clamp_(qmin, qmax)
     q_x = q_x.to(dtype)
+
+    assert zp_min <= zero_point <= zp_max, f'zero_point ({zero_point}) is outside target range ([{zp_min}; {zp_max}])'
 
     return QTensor(tensor=q_x, scale=scale, zero_point=zero_point)
 
