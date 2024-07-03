@@ -97,14 +97,15 @@ class QModel(nn.Module):
 
     q_x = F.relu(model.conv1(q_x))
 
-    def requantize(q_x: QTensor, stats) -> QTensor:
+    def requantize(q_x: QTensor, stats, zp_dtype=torch.int32) -> QTensor:
       x = q_x
 
       dtype=torch.uint8
       qmin, qmax = dtype2min_max(dtype)
+      zp_min, zp_max = dtype2min_max(zp_dtype)
       min_val=stats['min']
       max_val=stats['max']
-      scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), qmin=qmin, qmax=qmax)
+      scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), qmin=qmin, qmax=qmax, zp_min=zp_min, zp_max=zp_max)
 
       def scale_mult(x: QTensor, new_scale: float):
         rescale = x.scale / new_scale
