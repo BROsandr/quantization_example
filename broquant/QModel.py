@@ -58,11 +58,12 @@ def gatherStats(model, test_loader):
 
     return stats
 
-def quantize_bias(module: nn.Module, min_val, max_val):
+def quantize_bias(module: nn.Module, min_val, max_val, zp_dtype=torch.int32):
   logger.debug('In quantize_bias(...).')
   dtype = torch.uint8
   qmin, qmax = dtype2min_max(dtype)
-  act_scale, act_zp = calcScaleZeroPoint(min_val=min_val, max_val=max_val, qmin=qmin, qmax=qmax)
+  zp_min, zp_max = dtype2min_max(zp_dtype)
+  act_scale, act_zp = calcScaleZeroPoint(min_val=min_val, max_val=max_val, qmin=qmin, qmax=qmax, zp_min=zp_min, zp_max=zp_max)
   module.bias = nn.Parameter(QTensor.quantize(module.bias, dtype=torch.int32, scale=(module.weight.scale * act_scale), zero_point=0), requires_grad=False)
 
 def quantize_parameters(model: Model, stats):
