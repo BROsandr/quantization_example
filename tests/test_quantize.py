@@ -71,6 +71,12 @@ class TestQuantize(unittest.TestCase):
     self.assertNotEqual(q_x.zero_point, 0)
     self.assertTrue(torch.allclose(dequantize_tensor(q_x), x, atol=q_x.scale/2))
 
+  def test_zp_not_zero2(self):
+    x = torch.tensor([-2., 1], requires_grad=False)
+    q_x = quantize_tensor(x, dtype=torch.int8, zp_dtype=torch.int8)
+    self.assertNotEqual(q_x.zero_point, 0)
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x, atol=q_x.scale/2))
+
   def test_127(self):
     x = torch.tensor([127.], requires_grad=False)
     q_x = quantize_tensor(x, dtype=torch.int32)
