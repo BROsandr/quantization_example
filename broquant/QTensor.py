@@ -94,7 +94,7 @@ class QTensor(torch.Tensor):
     return dequantize_tensor(self)
 
 def calcScaleZeroPoint(min_val, max_val, qmin, qmax, zp_min, zp_max)->tuple[float, int]:
-  def calc_no_bias(val, qmin, qmax):
+  def calc_no_bias(val, qmin, qmax, zp_min, zp_max):
     min_zero_scaled = qmin
     max_zero_scaled = qmax
     if not (min_zero_scaled <= val <= max_zero_scaled):
@@ -111,7 +111,7 @@ def calcScaleZeroPoint(min_val, max_val, qmin, qmax, zp_min, zp_max)->tuple[floa
       return scale * 2 # Because we did one iteration past the actual
     scale = find_scale(val)
 
-    zero_point = round(-min_zero_scaled * scale) # convert to uint range. Note that here we use multiplication not division. The divison is used in the case of min_val.
+    zero_point = 0
 
     return scale, zero_point
 
@@ -121,10 +121,10 @@ def calcScaleZeroPoint(min_val, max_val, qmin, qmax, zp_min, zp_max)->tuple[floa
     zero_point = round(qmin - min_val / scale)
 
     if not (zp_min <= zero_point <= zp_max):
-      scale, zero_point = calc_no_bias(val=max(abs(min_val), abs(max_val)), qmin=qmin, qmax=qmax)
+      scale, zero_point = calc_no_bias(val=max(abs(min_val), abs(max_val)), qmin=qmin, qmax=qmax, zp_min=zp_min, zp_max=zp_max)
 
   else: # do the nearest scale quantization without the bias
-    scale, zero_point = calc_no_bias(val=min_val, qmin=qmin, qmax=qmax)
+    scale, zero_point = calc_no_bias(val=min_val, qmin=qmin, qmax=qmax, zp_min=zp_min, zp_max=zp_max)
 
   return scale, zero_point
 
@@ -139,7 +139,7 @@ def quantize_tensor(x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=No
 
     if not scale:
       scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), qmin=qmin, qmax=qmax, zp_min=zp_min, zp_max=zp_max)
-    q_x = zero_point + x / scale
+    q_x = zero_point + x.to(torch.float64) / scale # convert to a larger float because border values in int32 represented in float32 suffer from machine epsilon errors.
     q_x.round_().clamp_(qmin, qmax)
     q_x = q_x.to(dtype)
 
@@ -148,7 +148,7 @@ def quantize_tensor(x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=No
     return QTensor(tensor=q_x, scale=scale, zero_point=zero_point)
 
 def dequantize_tensor(q_x: QTensor)->torch.Tensor:
-    return q_x.scale * (torch.Tensor(q_x).float() - q_x.zero_point)
+    return (q_x.scale * (torch.Tensor(q_x).to(torch.float64) - q_x.zero_point)).to(torch.float32) # convert to a larger float because border values in int32 represented in float32 suffer from machine epsilon errors.
 
 @implements(torch.mul)
 def q_mul(input: QTensor, other: QTensor):
