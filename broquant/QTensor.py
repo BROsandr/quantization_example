@@ -227,12 +227,14 @@ def q_hardswish(input: QTensor, inplace=False):
   x = input if inplace else input.clone()
   unzp_type = torch.int32 if (input.dtype == torch.int32) or (input.dtype == torch.int16) else torch.int16
   x = x.to(unzp_type) - x.zero_point
+  x.zero_point = 0
   dequant_x = x.dequantize()
   left_range = dequant_x <= -3.
   middle_range = torch.logical_and(dequant_x > -3., dequant_x < 3.)
   if left_range.sum() > 0: x[left_range] = 0
   if middle_range.sum() > 0:
     x[middle_range] = (((torch.Tensor(x[middle_range]).float() * torch.Tensor(x[middle_range]).float()) * x.scale + (torch.Tensor(x[middle_range]).float() * 3.)) / 6.).round().to(unzp_type)
-    x += x.zero_point
+    x += input.zero_point
+    x.zero_point = input.zero_point
   q_x = x.clamp(min=torch.iinfo(input.dtype).min, max=torch.iinfo(input.dtype).max).to(input.dtype)
   return q_x
