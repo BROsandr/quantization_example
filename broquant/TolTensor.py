@@ -159,7 +159,7 @@ def tol_tensor_mul(input, other):
   res_atol = None
   if isinstance(other, TolTensor):
     tensor_res = torch.Tensor(input) * torch.Tensor(other)
-    tensor_atol = tensor_res * (input.atol / torch.Tensor(input).abs() + other.atol / torch.Tensor(other).abs())
+    tensor_atol = tensor_res * (input.atol / (torch.Tensor(input).abs() + torch.finfo(torch.float32).tiny) + other.atol / (torch.Tensor(other).abs() + torch.finfo(torch.float32).tiny))
     res_atol = tensor_atol.max().item()
   else:
     tensor_res = torch.Tensor(input) * other
