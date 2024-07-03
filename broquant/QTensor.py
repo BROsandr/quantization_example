@@ -225,7 +225,7 @@ def q_relu(input: QTensor, inplace=False):
 @act_warning
 def q_hardswish(input: QTensor, inplace=False):
   x = input if inplace else input.clone()
-  unzp_type = torch.int32
+  unzp_type = torch.int32 if (input.dtype == torch.int32) or (input.dtype == torch.int16) else torch.int16
   x = x.to(unzp_type) - x.zero_point
   dequant_x = x.dequantize()
   left_range = dequant_x <= -3.
