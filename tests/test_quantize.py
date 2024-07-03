@@ -65,5 +65,10 @@ class TestQuantize(unittest.TestCase):
     self.assertTrue(torch.iinfo(torch.int8).min <= q_x.zero_point <= torch.iinfo(torch.int8).max)
     self.assertTrue(torch.allclose(dequantize_tensor(q_x), x, atol=q_x.scale/2))
 
+  def test_127(self):
+    x = torch.tensor([127.], requires_grad=False)
+    q_x = quantize_tensor(x, dtype=torch.int32)
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x, atol=q_x.scale/2))
+
 if __name__ == '__main__':
   unittest.main()
