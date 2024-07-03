@@ -218,8 +218,14 @@ def act_warning(act: Callable):
 @act_warning
 def q_relu(input: QTensor, inplace=False):
   x = input if inplace else input.clone()
-  x[(torch.Tensor(x).float() - x.zero_point) < 0.] = x.zero_point
-  return x
+  unzp_type = torch.int32 if (input.dtype == torch.int32) or (input.dtype == torch.int16) else torch.int16
+  x = x.to(unzp_type) - x.zero_point
+  x.zero_point = 0
+  x[torch.Tensor(x) < 0] = 0
+  x += input.zero_point
+  x.zero_point = input.zero_point
+  q_x = x.clamp(min=torch.iinfo(input.dtype).min, max=torch.iinfo(input.dtype).max).to(input.dtype)
+  return q_x
 
 @implements(torch.nn.functional.hardswish)
 @act_warning
