@@ -90,6 +90,18 @@ class TestConst(unittest.TestCase):
     cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)
 
+  def test_int8_out(self):
+    x = torch.tensor([[0.8832, 0.7181, 0.3732, 0.5176],
+          [0.3493, 0.5380, 0.6766, 0.3606]], requires_grad=False)
+    with torch.no_grad():
+      expected = F.hardswish(x)
+      q_input = QTensor.quantize(x, dtype=torch.int8, zp_dtype=torch.int8)
+      q_actual = F.hardswish(q_input)
+      actual = q_actual.dequantize()
+    cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
+    self.assertTrue(q_actual.dtype == torch.int8)
+    self.assertTrue(cmp_res)
+
 class TestRandom(unittest.TestCase):
   def setUp(self):
     self.randomizer = HSRandomizer()
