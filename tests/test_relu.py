@@ -41,6 +41,16 @@ def calc_max_relu_atol(input: QTensor, func=F.relu)->float:
   input_tol_tensor = TolTensor.from_QTensor(input)
   return func(input=input_tol_tensor).atol
 
+class TestConst(unittest.TestCase):
+  def test_pos_neg(self):
+    x = torch.tensor([-2., 1], requires_grad=False)
+    with torch.no_grad():
+      expected = torch.tensor([0., 1], requires_grad=False)
+      q_input = QTensor.quantize(x, dtype=torch.int8)
+      actual = F.relu(q_input).dequantize()
+    cmp_res = torch.allclose(expected, actual, atol=calc_max_relu_atol(input=q_input))
+    self.assertTrue(cmp_res)
+
 class TestRandom(unittest.TestCase):
   def setUp(self):
     self.randomizer = ReluRandomizer()

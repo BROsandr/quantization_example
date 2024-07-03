@@ -86,20 +86,15 @@ class QTensor(torch.Tensor):
     return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
   @classmethod
-  def quantize(cls, x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0):
+  def quantize(cls, x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0, zp_dtype=torch.int32):
     assert(isinstance(x, torch.Tensor))
-    return quantize_tensor(x=x, dtype=dtype, min_val=min_val, max_val=max_val, scale=scale, zero_point=zero_point)
+    return quantize_tensor(x=x, dtype=dtype, min_val=min_val, max_val=max_val, scale=scale, zero_point=zero_point, zp_dtype=zp_dtype)
 
   def dequantize(self)->torch.Tensor:
     return dequantize_tensor(self)
 
-def calcScaleZeroPoint(min_val, max_val, qmin, qmax)->tuple[float, int]:
-  if min_val != max_val: # do the min-max quantization with the bias and the activation
-    scale = (max_val - min_val) / (qmax - qmin)
-
-    zero_point = round(qmin - min_val / scale)
-  else: # do the nearest scale quantization without the bias
-    val = min_val
+def calcScaleZeroPoint(min_val, max_val, qmin, qmax, zp_min, zp_max)->tuple[float, int]:
+  def calc_no_bias(val, qmin, qmax, zp_min, zp_max):
     min_zero_scaled = qmin
     max_zero_scaled = qmax
     if not (min_zero_scaled <= val <= max_zero_scaled):
@@ -116,27 +111,44 @@ def calcScaleZeroPoint(min_val, max_val, qmin, qmax)->tuple[float, int]:
       return scale * 2 # Because we did one iteration past the actual
     scale = find_scale(val)
 
-    zero_point = round(-min_zero_scaled * scale) # convert to uint range. Note that here we use multiplication not division. The divison is used in the case of min_val.
+    zero_point = 0
+
+    return scale, zero_point
+
+  if min_val != max_val: # do the min-max quantization with the bias and the activation
+    scale = (max_val - min_val) / (qmax - qmin)
+
+    zero_point = round(qmin - min_val / scale)
+
+    if not (zp_min <= zero_point <= zp_max):
+      scale, zero_point = calc_no_bias(val=max(abs(min_val), abs(max_val)), qmin=qmin, qmax=qmax, zp_min=zp_min, zp_max=zp_max)
+
+  else: # do the nearest scale quantization without the bias
+    scale, zero_point = calc_no_bias(val=min_val, qmin=qmin, qmax=qmax, zp_min=zp_min, zp_max=zp_max)
 
   return scale, zero_point
 
-def quantize_tensor(x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0)->QTensor:
+def quantize_tensor(x: torch.Tensor, dtype=torch.uint8, min_val=None, max_val=None, scale=None, zero_point=0, zp_dtype=torch.int32)->QTensor:
 
     qmin, qmax = dtype2min_max(dtype)
+
+    zp_min, zp_max = dtype2min_max(zp_dtype)
 
     if not min_val and not max_val:
       min_val, max_val = x.min(), x.max()
 
     if not scale:
-      scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), qmin=qmin, qmax=qmax)
-    q_x = zero_point + x / scale
+      scale, zero_point = calcScaleZeroPoint(min_val.item(), max_val.item(), qmin=qmin, qmax=qmax, zp_min=zp_min, zp_max=zp_max)
+    q_x = zero_point + x.to(torch.float64) / scale # convert to a larger float because border values in int32 represented in float32 suffer from machine epsilon errors.
     q_x.round_().clamp_(qmin, qmax)
     q_x = q_x.to(dtype)
+
+    assert zp_min <= zero_point <= zp_max, f'zero_point ({zero_point}) is outside target range ([{zp_min}; {zp_max}])'
 
     return QTensor(tensor=q_x, scale=scale, zero_point=zero_point)
 
 def dequantize_tensor(q_x: QTensor)->torch.Tensor:
-    return q_x.scale * (torch.Tensor(q_x).float() - q_x.zero_point)
+    return (q_x.scale * (torch.Tensor(q_x).to(torch.float64) - q_x.zero_point)).to(torch.float32) # convert to a larger float because border values in int32 represented in float32 suffer from machine epsilon errors.
 
 @implements(torch.mul)
 def q_mul(input: QTensor, other: QTensor):
@@ -195,16 +207,40 @@ def q_unfold(input: QTensor, *args, **kwargs):
 def q_fold(input: QTensor, *args, **kwargs):
   return input.clone(new_tensor=torch.nn.functional.fold(torch.Tensor(input).float(), *args, **kwargs).to(input.dtype)) # fold doesn't support int
 
-def relu_warning(relu: Callable):
+def act_warning(act: Callable):
   def decorator(input: QTensor, *args, **kwargs):
     if not ((input.dtype is torch.int32) and (input.zero_point == 0.)):
-      logger.warning('input dtype is not int32 or zp != 0. relu is working in simulated mode.')
-    return relu(input, *args, **kwargs)
+      logger.warning(f'input dtype is not int32 or zp != 0. func: {act} is working in simulated mode.')
+    return act(input, *args, **kwargs)
   return decorator
 
 @implements(torch.nn.functional.relu)
-@relu_warning
+@act_warning
 def q_relu(input: QTensor, inplace=False):
   x = input if inplace else input.clone()
-  x[(torch.Tensor(x).float() - x.zero_point) < 0.] = x.zero_point
-  return x
+  unzp_type = torch.int32 if (input.dtype == torch.int32) or (input.dtype == torch.int16) else torch.int16
+  x = x.to(unzp_type) - x.zero_point
+  x.zero_point = 0
+  x[torch.Tensor(x) < 0] = 0
+  x += input.zero_point
+  x.zero_point = input.zero_point
+  q_x = x.clamp(min=torch.iinfo(input.dtype).min, max=torch.iinfo(input.dtype).max).to(input.dtype)
+  return q_x
+
+@implements(torch.nn.functional.hardswish)
+@act_warning
+def q_hardswish(input: QTensor, inplace=False):
+  x = input if inplace else input.clone()
+  unzp_type = torch.int32 if (input.dtype == torch.int32) or (input.dtype == torch.int16) else torch.int16
+  x = x.to(unzp_type) - x.zero_point
+  x.zero_point = 0
+  dequant_x = x.dequantize()
+  left_range = dequant_x <= -3.
+  middle_range = torch.logical_and(dequant_x > -3., dequant_x < 3.)
+  if left_range.sum() > 0: x[left_range] = 0
+  if middle_range.sum() > 0:
+    x[middle_range] = (((torch.Tensor(x[middle_range]).float() * torch.Tensor(x[middle_range]).float()) * x.scale + (torch.Tensor(x[middle_range]).float() * 3.)) / 6.).round().to(unzp_type)
+    x += input.zero_point
+    x.zero_point = input.zero_point
+  q_x = x.clamp(min=torch.iinfo(input.dtype).min, max=torch.iinfo(input.dtype).max).to(input.dtype)
+  return q_x

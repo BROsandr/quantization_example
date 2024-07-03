@@ -28,11 +28,17 @@ class TolTensor(torch.Tensor):
   def mm(self, mat2: "TolTensor") -> "TolTensor":
     return torch.mm(self, mat2)
 
-  def __mul__(self, other: "TolTensor") -> "TolTensor":
+  def __mul__(self, other) -> "TolTensor":
     return torch.mul(self, other)
 
-  def mul(self, other: "TolTensor") -> "TolTensor":
+  def mul(self, other) -> "TolTensor":
     return torch.mul(self, other)
+
+  def __truediv__(self, other) -> "TolTensor":
+    return torch.div(self, other)
+
+  def div(self, other) -> "TolTensor":
+    return torch.div(self, other)
 
   def __add__(self, other):
     return torch.add(self, other)
@@ -40,12 +46,19 @@ class TolTensor(torch.Tensor):
   def add(self, other):
     return torch.add(self, other)
 
-  def mul_(self, other: "TolTensor") -> "TolTensor":
+  def mul_(self, other) -> "TolTensor":
     self = torch.mul(self, other)
     return self
 
-  def __imul__(self, other: "TolTensor") -> "TolTensor":
+  def div_(self, other) -> "TolTensor":
+    self = torch.div(self, other)
+    return self
+
+  def __imul__(self, other) -> "TolTensor":
     return self.mul_(other)
+
+  def __itruediv__(self, other) -> "TolTensor":
+    return self.div_(other)
 
   def __iadd__(self, other):
     return self.add_(other)
@@ -79,6 +92,19 @@ class TolTensor(torch.Tensor):
 
   def sum(self, dtype=None):
     return torch.sum(self, dtype=dtype)
+
+  def __getitem__(self, key):
+    if type(key) == type(self):
+      return super(TolTensor, self).__getitem__(torch.Tensor(key))
+    else:
+      return super(TolTensor, self).__getitem__(key)
+
+  def __setitem__(self, key, value):
+    if not(type(value) == type(self)): return NotImplemented
+    if type(key) == type(self):
+      super(TolTensor, self).__setitem__(torch.Tensor(key), torch.Tensor(value))
+    else:
+      super(TolTensor, self).__setitem__(key, torch.Tensor(value))
 
   @classmethod
   def __torch_function__(cls, func, types, args=(), kwargs=None):
@@ -130,12 +156,28 @@ def tol_tensor_mul(input, other):
   """
   tensor_atol = None
   tensor_res = None
+  res_atol = None
   if isinstance(other, TolTensor):
-    tensor_atol = input.atol * torch.Tensor(other).abs() + other.atol * torch.Tensor(input).abs()
-    tensor_res = torch.Tensor(other)
-  res_atol = tensor_atol.max().item() if tensor_atol is not None else input.atol * other
-  res = torch.Tensor(input) * (tensor_res if tensor_res is not None else other)
-  return TolTensor(tensor=res, atol=res_atol)
+    tensor_res = torch.Tensor(input) * torch.Tensor(other)
+    tensor_atol = tensor_res * (input.atol / (torch.Tensor(input).abs() + torch.finfo(torch.float32).tiny) + other.atol / (torch.Tensor(other).abs() + torch.finfo(torch.float32).tiny))
+    res_atol = tensor_atol.max().item()
+  else:
+    tensor_res = torch.Tensor(input) * other
+    res_atol = input.atol * other
+  return TolTensor(tensor=tensor_res, atol=res_atol)
+
+@implements(torch.div)
+def tol_tensor_div(input, other):
+  divider = None
+  if isinstance(other, torch.Tensor):
+    divider = other.clone(1. / torch.Tensor(other))
+  else:
+    divider = 1. / other
+  return torch.mul(input, divider)
+
+@implements(torch.sub)
+def tol_tensor_sub(input, other):
+  return torch.add(input, -other)
 
 @implements(torch.add)
 def tol_tensor_add(input, other):
@@ -173,8 +215,23 @@ implements(torch.nn.functional.linear)(q_linear)
 implements(torch.matmul)(q_matmul)
 
 @implements(torch.nn.functional.fold)
-def q_fold(input, *args, **kwargs):
+def tol_fold(input, *args, **kwargs):
   res=torch.nn.functional.fold(torch.Tensor(input), *args, **kwargs) # fold doesn't support int
   if input.numel() != res.numel():
     raise NotImplementedError("Number of output's elements differs from the input's. Implement atol recalculation.")
   return TolTensor(tensor=res, atol=input.atol)
+
+@implements(torch.nn.functional.hardswish)
+def tol_hardswish(input: TolTensor, inplace=False):
+  x = input if inplace else input.clone()
+  left_range = x <= -3.
+  middle_range = torch.logical_and(x > -3., x < 3.)
+  x[left_range] = 0
+  x[middle_range] = ((x[middle_range] * x[middle_range]) + (x[middle_range] * 3.)) / 6.
+  return x
+
+@implements(torch.logical_and)
+def tol_logical_and(input: TolTensor, other: TolTensor):
+  res = torch.logical_and(torch.Tensor(input), torch.Tensor(input))
+  res_atol = 0
+  return TolTensor(tensor=res, atol=res_atol)

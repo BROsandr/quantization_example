@@ -59,5 +59,28 @@ class TestQuantize(unittest.TestCase):
     q_x = quantize_tensor(x)
     self.assertTrue(torch.allclose(dequantize_tensor(q_x), x, atol=q_x.scale/2))
 
+  def test_zp_out_of_int8(self):
+    x = torch.tensor([0.8832, 0.7181], requires_grad=False)
+    q_x = quantize_tensor(x, zp_dtype=torch.int8)
+    self.assertTrue(torch.iinfo(torch.int8).min <= q_x.zero_point <= torch.iinfo(torch.int8).max)
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x, atol=q_x.scale/2))
+
+  def test_zp_not_zero(self):
+    x = torch.tensor([2., 3.], requires_grad=False)
+    q_x = quantize_tensor(x, dtype=torch.int8)
+    self.assertNotEqual(q_x.zero_point, 0)
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x, atol=q_x.scale/2))
+
+  def test_zp_not_zero2(self):
+    x = torch.tensor([-2., 1], requires_grad=False)
+    q_x = quantize_tensor(x, dtype=torch.int8, zp_dtype=torch.int8)
+    self.assertNotEqual(q_x.zero_point, 0)
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x, atol=q_x.scale/2))
+
+  def test_127(self):
+    x = torch.tensor([127.], requires_grad=False)
+    q_x = quantize_tensor(x, dtype=torch.int32)
+    self.assertTrue(torch.allclose(dequantize_tensor(q_x), x, atol=q_x.scale/2))
+
 if __name__ == '__main__':
   unittest.main()
