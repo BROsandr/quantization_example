@@ -48,7 +48,7 @@ class TestConst(unittest.TestCase):
     x = torch.tensor([1.], requires_grad=False)
     with torch.no_grad():
       expected = F.hardswish(x)
-      q_input = QTensor.quantize(x)
+      q_input = QTensor.quantize(x, dtype=torch.int32)
       actual = F.hardswish(q_input).dequantize()
     cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)
@@ -57,7 +57,7 @@ class TestConst(unittest.TestCase):
     x = torch.tensor([0.3], requires_grad=False)
     with torch.no_grad():
       expected = F.hardswish(x)
-      q_input = QTensor.quantize(x)
+      q_input = QTensor.quantize(x, dtype=torch.int32)
       actual = F.hardswish(q_input).dequantize()
     cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)
@@ -66,7 +66,7 @@ class TestConst(unittest.TestCase):
     x = torch.tensor([127.], requires_grad=False)
     with torch.no_grad():
       expected = F.hardswish(x)
-      q_input = QTensor.quantize(x)
+      q_input = QTensor.quantize(x, dtype=torch.int32)
       actual = F.hardswish(q_input).dequantize()
     cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)
@@ -75,7 +75,7 @@ class TestConst(unittest.TestCase):
     x = torch.tensor([0.8832, 0.7181], requires_grad=False)
     with torch.no_grad():
       expected = F.hardswish(x)
-      q_input = QTensor.quantize(x, zp_dtype=torch.int8)
+      q_input = QTensor.quantize(x, dtype=torch.int32, zp_dtype=torch.int8)
       actual = F.hardswish(q_input).dequantize()
     cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)
@@ -85,7 +85,7 @@ class TestConst(unittest.TestCase):
           [0.3493, 0.5380, 0.6766, 0.3606]], requires_grad=False)
     with torch.no_grad():
       expected = F.hardswish(x)
-      q_input = QTensor.quantize(x)
+      q_input = QTensor.quantize(x, dtype=torch.int32)
       actual = F.hardswish(q_input).dequantize()
     cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)
@@ -105,7 +105,7 @@ class TestRandom(unittest.TestCase):
     input = randomizer.input
     with torch.no_grad():
       expected: torch.Tensor=self.call(input=input)
-      q_input = QTensor.quantize(input)
+      q_input = QTensor.quantize(input, dtype=torch.int32)
       actual: torch.Tensor=self.call(input=q_input).dequantize()
     metrics = eval_metrics(actual=actual, expected=expected)
     metrics[Metrics.ATOL]=calc_max_HS_atol(input=q_input, func=self.call)
