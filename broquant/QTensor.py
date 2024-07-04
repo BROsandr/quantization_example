@@ -1,10 +1,11 @@
-from typing import Callable, Sequence, Iterable, Any
+from typing import Callable, Generator, Sequence, Iterable, Any
 import torch
 import logging
 from broquant.q_conv2d import q_conv2d
 from broquant.q_linear import q_linear
 from broquant.q_matmul import q_matmul
 from broquant.utils import Implements, collapse_tensors
+from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,17 @@ class QTensor(torch.Tensor):
   def matmul_(self, other: "QTensor") -> "QTensor":
     self = torch.matmul(self, other)
     return self
+
+  @contextmanager
+  def unzp(self) -> Generator["QTensor", Any, None]:
+    unzp_type = torch.int32 if (self.dtype == torch.int32) or (self.dtype == torch.int16) else torch.int16
+    unzp_obj = self.to(unzp_type) - self.zero_point
+    unzp_obj.zero_point = 0
+    try:
+      yield unzp_obj
+    finally:
+      unzp_obj += self.zero_point
+      self.data = unzp_obj.clamp(min=torch.iinfo(self.dtype).min, max=torch.iinfo(self.dtype).max).to(self.dtype)
 
   @classmethod
   def __torch_function__(cls, func, types, args=(), kwargs=None):
@@ -231,16 +243,11 @@ def q_relu(input: QTensor, inplace=False):
 @act_warning
 def q_hardswish(input: QTensor, inplace=False):
   x = input if inplace else input.clone()
-  unzp_type = torch.int32 if (input.dtype == torch.int32) or (input.dtype == torch.int16) else torch.int16
-  x = x.to(unzp_type) - x.zero_point
-  x.zero_point = 0
-  dequant_x = x.dequantize()
-  left_range = dequant_x <= -3.
-  middle_range = torch.logical_and(dequant_x > -3., dequant_x < 3.)
-  if left_range.sum() > 0: x[left_range] = 0
-  if middle_range.sum() > 0:
-    x[middle_range] = (((torch.Tensor(x[middle_range]).float() * torch.Tensor(x[middle_range]).float()) * x.scale + (torch.Tensor(x[middle_range]).float() * 3.)) / 6.).round().to(unzp_type)
-    x += input.zero_point
-    x.zero_point = input.zero_point
-  q_x = x.clamp(min=torch.iinfo(input.dtype).min, max=torch.iinfo(input.dtype).max).to(input.dtype)
-  return q_x
+  with x.unzp() as unzp_x:
+    dequant_x = unzp_x.dequantize()
+    left_range = dequant_x <= -3.
+    middle_range = torch.logical_and(dequant_x > -3., dequant_x < 3.)
+    if left_range.sum() > 0: unzp_x[left_range] = 0
+    if middle_range.sum() > 0:
+      unzp_x[middle_range] = (((torch.Tensor(unzp_x[middle_range]).float() * torch.Tensor(unzp_x[middle_range]).float()) * unzp_x.scale + (torch.Tensor(unzp_x[middle_range]).float() * 3.)) / 6.).round().to(unzp_x.dtype)
+  return x
