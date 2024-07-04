@@ -90,6 +90,15 @@ class TestConst(unittest.TestCase):
     cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(q_input))
     self.assertTrue(cmp_res)
 
+  def test_zp_not_zero(self):
+    x = torch.tensor([-2., 1], requires_grad=False)
+    with torch.no_grad():
+      expected = F.hardswish(x)
+      q_input = QTensor.quantize(x, dtype=torch.int8)
+      actual = F.hardswish(q_input).dequantize()
+    cmp_res = torch.allclose(expected, actual, atol=calc_max_HS_atol(input=q_input))
+    self.assertTrue(cmp_res)
+
   def test_int8_out(self):
     x = torch.tensor([[0.8832, 0.7181, 0.3732, 0.5176],
           [0.3493, 0.5380, 0.6766, 0.3606]], requires_grad=False)
