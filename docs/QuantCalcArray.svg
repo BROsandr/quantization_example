@@ -2909,9 +2909,9 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="0.99548798"
-     inkscape:cx="328.48212"
-     inkscape:cy="282.77589"
+     inkscape:zoom="2.8156652"
+     inkscape:cx="734.10717"
+     inkscape:cy="84.349517"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="-8"
@@ -5433,5 +5433,43 @@
        id="path14"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0" />
+    <text
+       xml:space="preserve"
+       style="font-size:8px;font-family:'JetBrainsMonoNL Nerd Font';-inkscape-font-specification:'JetBrainsMonoNL Nerd Font, Normal';text-align:center;text-anchor:middle;fill:#ff00ff;stroke:none;stroke-dasharray:0.999995, 2.99998"
+       x="947.48895"
+       y="126.92403"
+       id="text6"><tspan
+         sodipodi:role="line"
+         id="tspan6"
+         x="947.48895"
+         y="126.92403">Sx - scale of x (input)</tspan><tspan
+         sodipodi:role="line"
+         x="947.48895"
+         y="136.92403"
+         id="tspan7">zpx - zero point of x (input)</tspan><tspan
+         sodipodi:role="line"
+         x="947.48895"
+         y="146.92403"
+         id="tspan11">Sw - scale of weight</tspan><tspan
+         sodipodi:role="line"
+         x="947.48895"
+         y="156.92403"
+         id="tspan12">zpw - zero point of weight</tspan><tspan
+         sodipodi:role="line"
+         x="947.48895"
+         y="166.92403"
+         id="tspan13">Sa - scale of activation</tspan><tspan
+         sodipodi:role="line"
+         x="947.48895"
+         y="176.92403"
+         id="tspan14">zpa - zero point of activation</tspan><tspan
+         sodipodi:role="line"
+         x="947.48895"
+         y="186.92403"
+         id="tspan15">Sb - scale of bias</tspan><tspan
+         sodipodi:role="line"
+         x="947.48895"
+         y="196.92403"
+         id="tspan16">zpb - zero point of bias</tspan></text>
   </g>
 </svg>
