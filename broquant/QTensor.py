@@ -32,6 +32,12 @@ class QTensor(torch.Tensor):
       new_tensor = super().clone(*args, **kwargs)
     return QTensor(tensor=new_tensor, scale=self.scale, zero_point=self.zero_point)
 
+  def sigmoid(self, *args, **kwargs):
+    return q_sigmoid(self, *args, **kwargs)
+
+  def sigmoid_(self, *args, **kwargs):
+    return q_sigmoid(self, *args, **kwargs)
+
   def mm(self, mat2: "QTensor") -> "QTensor":
     return torch.mm(self, mat2)
 
@@ -233,6 +239,14 @@ def q_relu(input: QTensor, inplace=False):
   x = input if inplace else input.clone()
   with x.unzp() as unzp_x:
     unzp_x[torch.Tensor(unzp_x) < 0] = 0
+  return x
+
+@implements(torch.nn.functional.sigmoid)
+@act_warning
+def q_sigmoid(input: QTensor, inplace=False):
+  x = input if inplace else input.clone()
+  with x.unzp() as unzp_x:
+    unzp_x = QTensor.quantize(x=torch.nn.functional.sigmoid(unzp_x.dequantize()), dtype=unzp_x.dtype, scale=unzp_x.scale, zero_point=unzp_x.zero_point)
   return x
 
 @implements(torch.nn.functional.hardswish)
