@@ -70,6 +70,7 @@ class QTensor(torch.Tensor):
       yield unzp_obj
     finally:
       unzp_obj += self.zero_point
+      unzp_obj.zero_point = self.zero_point
       self.data = unzp_obj.clamp(min=torch.iinfo(self.dtype).min, max=torch.iinfo(self.dtype).max).to(self.dtype)
 
   @classmethod
