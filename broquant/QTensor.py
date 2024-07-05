@@ -246,7 +246,7 @@ def q_relu(input: QTensor, inplace=False):
 def q_sigmoid(input: QTensor, inplace=False):
   x = input if inplace else input.clone()
   with x.unzp() as unzp_x:
-    unzp_x = QTensor.quantize(x=torch.nn.functional.sigmoid(unzp_x.dequantize()), dtype=unzp_x.dtype, scale=unzp_x.scale, zero_point=unzp_x.zero_point)
+    unzp_x[...] = QTensor.quantize(x=torch.nn.functional.sigmoid(unzp_x.dequantize()), dtype=unzp_x.dtype, scale=unzp_x.scale, zero_point=unzp_x.zero_point)
   return x
 
 @implements(torch.nn.functional.hardswish)
